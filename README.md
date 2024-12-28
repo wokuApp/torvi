@@ -1,62 +1,66 @@
 # Tournament Server
 
-Un servidor basado en Rust para gestionar torneos de eliminación simple para competencias de ideas basadas en imágenes.
+> A Rust-based server for managing single-elimination tournament brackets for image-based idea competitions.
 
-## 📖 Descripción General
+## Overview
 
-Este servidor proporciona una infraestructura backend robusta para ejecutar torneos donde las ideas, representadas a través de imágenes, compiten en un formato de eliminación tipo bracket. Construido con Rust y MongoDB para la persistencia de datos, el sistema ofrece autenticación segura y gestión eficiente de torneos.
+This server provides a robust backend infrastructure for running tournaments where ideas, represented through images, compete in a bracket-style elimination format. Built with Rust and leveraging MongoDB for data persistence, the system offers secure authentication and efficient tournament management.
 
-## ✨ Características
+## 🚀 Features
 
-- **Autenticación JWT**: Sistema de autenticación seguro
-- **Gestión de Torneos**: Creación y administración de torneos de eliminación simple
-- **Manejo de Imágenes**: Soporte para representación de ideas mediante imágenes
-- **Sistema de Brackets**: Generación y progresión automatizada de brackets
-- **API RESTful**: Endpoints limpios y bien documentados
+- **JWT-based Authentication**: Secure user authentication system
+- **Tournament Management**: Create and manage single-elimination tournaments
+- **Image Handling**: Support for idea representation through images
+- **Bracket System**: Automated bracket generation and progression
+- **RESTful API**: Clean and well-documented API endpoints
 
-## 🛠️ Stack Tecnológico
+## 🛠 Tech Stack
 
-- **Lenguaje**: Rust
-- **Framework Web**: Rocket.rs
-- **Base de Datos**: MongoDB
-- **Autenticación**: JWT (JSON Web Tokens)
-- **Testing**: Framework de testing integrado de Rust
+- **Language**: Rust
+- **Web Framework**: Rocket.rs
+- **Database**: MongoDB
+- **Authentication**: JWT (JSON Web Tokens)
+- **Testing**: Built-in Rust testing framework
 
-## 📋 Requisitos Previos
+## 📋 Prerequisites
 
-- Rust (última versión estable)
+- Rust (latest stable version)
 - MongoDB
-- Cargo (gestor de paquetes de Rust)
+- Cargo (Rust package manager)
 
-## ⚙️ Configuración
+## ⚙️ Configuration
 
-El servidor requiere las siguientes variables de entorno:
+The server requires the following environment variables:
 
-```console
-MONGODB_URI
+env
+MONGODB_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
 
 ## 🚀 Getting Started
 
 1. Clone the repository
 
-bash
+```bash
 git clone [repository-url]
+```
 
 2. Install dependencies
 
-bash
+```bash
 cargo build
+```
 
 3. Run the server
 
-bash
+```bash
 cargo run
+```
 
 4. Run tests
 
-bash
+```bash
 cargo test
+```
 
 ## 🔒 API Authentication
 
@@ -86,4 +90,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 ---
 
 Built with ❤️ by Diego Orrego
-```
