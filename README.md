@@ -41,7 +41,7 @@ JWT_SECRET=your_jwt_secret
 1. Clone the repository
 
 ```bash
-git clone [repository-url]
+git clone [https://github.com/wokuApp/torvi]
 ```
 
 2. Install dependencies
@@ -85,7 +85,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 
 ## 🏢 Company
 
-[Woku](https://woku.app)
+[woku](https://woku.app)
 
 ---
 
