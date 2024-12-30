@@ -4,21 +4,20 @@
 
 ## Overview
 
-This server provides a robust backend infrastructure for running tournaments where ideas, represented through images, compete in a bracket-style elimination format. Built with Rust and leveraging MongoDB for data persistence, the system offers secure authentication and efficient tournament management.
+This server provides a backend infrastructure for running tournaments where ideas, represented through images, compete in a by match elimination format. Built with Rust and leveraging MongoDB for data persistence, the system offers secure authentication and efficient tournament management.
 
 ## 🚀 Features
 
 - **JWT-based Authentication**: Secure user authentication system
 - **Tournament Management**: Create and manage single-elimination tournaments
 - **Image Handling**: Support for idea representation through images
-- **Bracket System**: Automated bracket generation and progression
-- **RESTful API**: Clean and well-documented API endpoints
 
 ## 🛠 Tech Stack
 
 - **Language**: Rust
 - **Web Framework**: Rocket.rs
 - **Database**: MongoDB
+- **Storage**: Azure Blob Storage
 - **Authentication**: JWT (JSON Web Tokens)
 - **Testing**: Built-in Rust testing framework
 
@@ -26,22 +25,33 @@ This server provides a robust backend infrastructure for running tournaments whe
 
 - Rust (latest stable version)
 - MongoDB
+- Azure Storage
 - Cargo (Rust package manager)
 
 ## ⚙️ Configuration
 
 The server requires the following environment variables:
 
-env
-MONGODB_URI=your_mongodb_connection_string
-JWT_SECRET=your_jwt_secret
+```env
+# Azure Storage Configuration
+AZURE_STORAGE_ACCOUNT=Azure_storage_account_name
+AZURE_STORAGE_KEY=Azure_storage_access_key
+AZURE_STORAGE_CONTAINER=Azure_storage_container_name
+
+# JWT Configuration
+JWT_SECRET=Secret_key_for_JWT_signing
+
+# MongoDB Configuration
+MONGODB_URI=MongoDB_connection_string
+MONGODB_NAME=MongoDB_database_name
+```
 
 ## 🚀 Getting Started
 
 1. Clone the repository
 
 ```bash
-git clone [https://github.com/wokuApp/torvi]
+git clone https://github.com/wokuApp/torvi
 ```
 
 2. Install dependencies
@@ -74,7 +84,7 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
 
 ## 👤 Author
 
