@@ -4,14 +4,11 @@ import { LoginPage } from '@/modules/Auth/pages/LoginPage'
 import { RegisterPage } from '@/modules/Auth/pages/RegisterPage'
 import { DashboardPage } from '@/modules/Dashboard/pages/DashboardPage'
 import { CreateTournamentPage } from '@/modules/Dashboard/pages/CreateTournamentPage'
+import { TournamentPage } from '@/modules/Tournament/pages/TournamentPage'
+import { ResultsPage } from '@/modules/Tournament/pages/ResultsPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { GuestRoute } from './GuestRoute'
-import {
-  TournamentPage,
-  ResultsPage,
-  JoinPage,
-  NotFoundPage,
-} from './placeholders'
+import { JoinPage, NotFoundPage } from './placeholders'
 
 export const router = createBrowserRouter([
   {
