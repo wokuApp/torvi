@@ -1,7 +1,8 @@
-use mongodb::Database;
-use rocket::{serde::json::Json, State};
+use rocket::serde::json::Json;
+use rocket::State;
 
 use crate::common::guards::AuthenticatedUser;
+use crate::config::database::MongoDB;
 use crate::error::Error;
 use crate::modules::opponents::{
     model::{CreateOpponentDto, Opponent},
@@ -10,11 +11,11 @@ use crate::modules::opponents::{
 
 #[post("/create", data = "<opponent_dto>")]
 pub async fn create(
-    db: &State<Database>,
+    mongodb: &State<MongoDB>,
     auth: AuthenticatedUser,
     opponent_dto: Json<CreateOpponentDto>,
 ) -> Result<Json<Opponent>, Error> {
-    let service = OpponentService::new(db);
+    let service = OpponentService::new(&mongodb.db);
 
     let opponent = service
         .create_opponent(opponent_dto.into_inner(), auth.user_id)
