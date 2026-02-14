@@ -52,16 +52,26 @@ impl<'r> FromRequest<'r> for AuthenticatedUser {
         );
 
         match auth_service.verify_token(token) {
-            Ok(claims) => match ObjectId::parse_str(&claims.sub) {
-                Ok(user_id) => Outcome::Success(AuthenticatedUser {
-                    user_id,
-                    email: claims.email,
-                }),
-                Err(_) => Outcome::Error((
-                    Status::Unauthorized,
-                    Error::Unauthorized("Invalid user ID".to_string()),
-                )),
-            },
+            Ok(claims) => {
+                if claims.token_type != "access" {
+                    return Outcome::Error((
+                        Status::Unauthorized,
+                        Error::Unauthorized(
+                            "Invalid token type: expected access token".to_string(),
+                        ),
+                    ));
+                }
+                match ObjectId::parse_str(&claims.sub) {
+                    Ok(user_id) => Outcome::Success(AuthenticatedUser {
+                        user_id,
+                        email: claims.email,
+                    }),
+                    Err(_) => Outcome::Error((
+                        Status::Unauthorized,
+                        Error::Unauthorized("Invalid user ID".to_string()),
+                    )),
+                }
+            }
             Err(_) => Outcome::Error((
                 Status::Unauthorized,
                 Error::Unauthorized("Invalid token".to_string()),
