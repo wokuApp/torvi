@@ -217,17 +217,15 @@ fn test_vote_match_dto_deserialization() {
     // Arrange
     let tournament_id = ObjectId::new();
     let match_id = "match1".to_string();
-    let user_id = ObjectId::new();
     let voted_for = ObjectId::new();
 
     let json = format!(
         r#"{{
             "tournament_id": "{}",
             "match_id": "{}",
-            "user_id": "{}",
             "voted_for": "{}"
         }}"#,
-        tournament_id, match_id, user_id, voted_for
+        tournament_id, match_id, voted_for
     );
 
     // Act
@@ -236,6 +234,5 @@ fn test_vote_match_dto_deserialization() {
     // Assert
     assert_eq!(dto.tournament_id, tournament_id);
     assert_eq!(dto.match_id, match_id);
-    assert_eq!(dto.user_id, user_id);
     assert_eq!(dto.voted_for, voted_for);
 }

@@ -141,7 +141,6 @@ impl From<Tournament> for TournamentResponse {
 pub struct VoteMatchDto {
     pub tournament_id: ObjectId,
     pub match_id: String,
-    pub user_id: ObjectId,
     pub voted_for: ObjectId,
 }
 

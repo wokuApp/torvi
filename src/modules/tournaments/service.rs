@@ -13,7 +13,7 @@ pub trait TournamentService {
         &self,
         tournament_dto: CreateTournamentDto,
     ) -> Result<Tournament, String>;
-    async fn vote_match(&self, vote_dto: VoteMatchDto) -> Result<Tournament, String>;
+    async fn vote_match(&self, vote_dto: VoteMatchDto, user_id: ObjectId) -> Result<Tournament, String>;
 }
 
 pub struct TournamentServiceImpl {
@@ -129,7 +129,7 @@ impl TournamentService for TournamentServiceImpl {
         }
     }
 
-    async fn vote_match(&self, vote_dto: VoteMatchDto) -> Result<Tournament, String> {
+    async fn vote_match(&self, vote_dto: VoteMatchDto, user_id: ObjectId) -> Result<Tournament, String> {
         let mut tournament = self
             .tournament_repository
             .find_by_id(&vote_dto.tournament_id)
@@ -145,7 +145,7 @@ impl TournamentService for TournamentServiceImpl {
                 .find(|m| m.match_id == vote_dto.match_id)
                 .ok_or("Match not found")?;
 
-            current_match.process_vote(vote_dto.user_id, vote_dto.voted_for, &tournament.users)?
+            current_match.process_vote(user_id, vote_dto.voted_for, &tournament.users)?
         };
 
         if let Some(_) = match_winner {

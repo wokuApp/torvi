@@ -117,7 +117,6 @@ async fn test_vote_match_unauthorized() {
     let vote_dto = json!({
         "tournament_id": ObjectId::new().to_string(),
         "match_id": "test_match",
-        "user_id": ObjectId::new().to_string(),
         "voted_for": ObjectId::new().to_string()
     });
 

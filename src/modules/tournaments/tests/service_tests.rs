@@ -144,12 +144,11 @@ async fn test_vote_match_success() {
     let vote_dto = VoteMatchDto {
         tournament_id,
         match_id,
-        user_id,
         voted_for: opponent1,
     };
 
     // Act
-    let result = service.vote_match(vote_dto).await;
+    let result = service.vote_match(vote_dto, user_id).await;
 
     // Assert
     assert!(result.is_ok());
@@ -165,15 +164,15 @@ async fn test_vote_match_tournament_not_found() {
         .returning(|_| Ok(None));
 
     let service = TournamentServiceImpl::new(Box::new(mock_repo));
+    let user_id = ObjectId::new();
     let vote_dto = VoteMatchDto {
         tournament_id: ObjectId::new(),
         match_id: "test_match".to_string(),
-        user_id: ObjectId::new(),
         voted_for: ObjectId::new(),
     };
 
     // Act
-    let result = service.vote_match(vote_dto).await;
+    let result = service.vote_match(vote_dto, user_id).await;
 
     // Assert
     assert!(result.is_err());
@@ -205,12 +204,11 @@ async fn test_complete_tournament() {
     let vote_dto = VoteMatchDto {
         tournament_id,
         match_id,
-        user_id,
         voted_for: winner_id,
     };
 
     // Act
-    let result = service.vote_match(vote_dto).await;
+    let result = service.vote_match(vote_dto, user_id).await;
 
     // Assert
     assert!(result.is_ok());
@@ -251,12 +249,11 @@ async fn test_create_next_round() {
     let vote_dto = VoteMatchDto {
         tournament_id,
         match_id,
-        user_id,
         voted_for: opponent1,
     };
 
     // Act
-    let result = service.vote_match(vote_dto).await;
+    let result = service.vote_match(vote_dto, user_id).await;
 
     // Assert
     assert!(result.is_ok());
@@ -284,10 +281,9 @@ async fn test_integration_vote_persists_in_db() {
     let vote_dto = VoteMatchDto {
         tournament_id,
         match_id,
-        user_id,
         voted_for,
     };
-    service.vote_match(vote_dto).await.unwrap();
+    service.vote_match(vote_dto, user_id).await.unwrap();
 
     // Verify the vote was persisted
     let persisted = repo.find_by_id(&tournament_id).await.unwrap().unwrap();

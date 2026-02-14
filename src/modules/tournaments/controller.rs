@@ -37,7 +37,7 @@ pub async fn vote_match(
     let service = TournamentServiceImpl::new(repository);
 
     let tournament = service
-        .vote_match(vote_dto.into_inner())
+        .vote_match(vote_dto.into_inner(), auth.user_id)
         .await
         .map_err(|e| Error::BadRequest(e))?;
 
