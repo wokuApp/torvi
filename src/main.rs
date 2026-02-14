@@ -11,6 +11,7 @@ mod modules;
 #[launch]
 fn rocket() -> _ {
     dotenv().ok();
+    config::logging::init();
 
     rocket::build()
         .attach(config::security::init())
