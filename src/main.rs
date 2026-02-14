@@ -1,9 +1,11 @@
-use dotenv::dotenv;
-
 #[macro_use]
+extern crate rocket;
+
+use dotenv::dotenv;
 
 mod config;
 pub mod common;
+pub mod error;
 mod modules;
 
 #[launch]
