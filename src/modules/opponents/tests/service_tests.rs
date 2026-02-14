@@ -3,9 +3,10 @@ use mockall::mock;
 use mongodb::bson::oid::ObjectId;
 use std::sync::Arc;
 
+use crate::common::pagination::PaginationParams;
 use crate::error::Error;
 use crate::modules::opponents::{
-    model::{CreateOpponentDto, Opponent},
+    model::{CreateOpponentDto, Opponent, UpdateOpponentDto},
     repository::OpponentRepository,
     service::{OpponentService, OpponentServiceImpl},
 };
@@ -17,7 +18,7 @@ mock! {
     impl OpponentRepository for OpponentRepo {
         async fn create(&self, opponent: &Opponent) -> Result<Opponent, String>;
         async fn find_by_id(&self, id: &ObjectId) -> Result<Option<Opponent>, String>;
-        async fn find_by_creator(&self, user_id: &ObjectId) -> Result<Vec<Opponent>, String>;
+        async fn find_by_creator(&self, user_id: &ObjectId, cursor: Option<ObjectId>, limit: i64) -> Result<Vec<Opponent>, String>;
         async fn update(&self, opponent: &Opponent) -> Result<(), String>;
         async fn delete(&self, id: &ObjectId) -> Result<(), String>;
     }
@@ -133,6 +134,202 @@ async fn test_create_opponent_repository_error() {
             assert_eq!(msg, "Database connection failed");
         }
         _ => panic!("Expected DatabaseError"),
+    }
+}
+
+#[tokio::test]
+async fn test_find_by_id_success() {
+    let mut mock_repo = MockOpponentRepo::new();
+    let mut opponent = create_test_opponent();
+    opponent.id = Some(ObjectId::new());
+    let opp_id = opponent.id.unwrap();
+    let opp_clone = opponent.clone();
+    mock_repo
+        .expect_find_by_id()
+        .with(mockall::predicate::eq(opp_id))
+        .times(1)
+        .returning(move |_| Ok(Some(opp_clone.clone())));
+
+    let service = OpponentServiceImpl::new(Arc::new(mock_repo));
+    let result = service.find_by_id(&opp_id).await;
+    assert!(result.is_ok());
+    assert!(result.unwrap().is_some());
+}
+
+#[tokio::test]
+async fn test_find_by_creator_paginated() {
+    let mut mock_repo = MockOpponentRepo::new();
+    let mut opp1 = create_test_opponent();
+    opp1.id = Some(ObjectId::new());
+    let opp1_clone = opp1.clone();
+    mock_repo
+        .expect_find_by_creator()
+        .times(1)
+        .returning(move |_, _, _| Ok(vec![opp1_clone.clone()]));
+
+    let service = OpponentServiceImpl::new(Arc::new(mock_repo));
+    let params = PaginationParams {
+        cursor: None,
+        limit: Some(20),
+    };
+    let result = service.find_by_creator(&ObjectId::new(), params).await;
+    assert!(result.is_ok());
+    let response = result.unwrap();
+    assert_eq!(response.data.len(), 1);
+    assert!(!response.has_more);
+}
+
+#[tokio::test]
+async fn test_update_opponent_success() {
+    let mut mock_repo = MockOpponentRepo::new();
+    let user_id = ObjectId::new();
+    let mut opponent = create_test_opponent();
+    opponent.id = Some(ObjectId::new());
+    opponent.created_by = user_id;
+    let opp_clone = opponent.clone();
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(opp_clone.clone())));
+    mock_repo
+        .expect_update()
+        .times(1)
+        .returning(|_| Ok(()));
+
+    let service = OpponentServiceImpl::new(Arc::new(mock_repo));
+    let dto = UpdateOpponentDto {
+        name: Some("Updated Name".to_string()),
+        image: None,
+    };
+    let result = service
+        .update_opponent(&opponent.id.unwrap(), dto, &user_id)
+        .await;
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap().name, "Updated Name");
+}
+
+#[tokio::test]
+async fn test_update_opponent_forbidden() {
+    let mut mock_repo = MockOpponentRepo::new();
+    let mut opponent = create_test_opponent();
+    opponent.id = Some(ObjectId::new());
+    let opp_clone = opponent.clone();
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(opp_clone.clone())));
+
+    let service = OpponentServiceImpl::new(Arc::new(mock_repo));
+    let other_user_id = ObjectId::new();
+    let dto = UpdateOpponentDto {
+        name: Some("Hacked".to_string()),
+        image: None,
+    };
+    let result = service
+        .update_opponent(&opponent.id.unwrap(), dto, &other_user_id)
+        .await;
+    assert!(result.is_err());
+    match result {
+        Err(Error::Forbidden(_)) => {}
+        _ => panic!("Expected Forbidden error"),
+    }
+}
+
+#[tokio::test]
+async fn test_update_opponent_not_found() {
+    let mut mock_repo = MockOpponentRepo::new();
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(|_| Ok(None));
+
+    let service = OpponentServiceImpl::new(Arc::new(mock_repo));
+    let dto = UpdateOpponentDto {
+        name: Some("Name".to_string()),
+        image: None,
+    };
+    let result = service
+        .update_opponent(&ObjectId::new(), dto, &ObjectId::new())
+        .await;
+    assert!(result.is_err());
+    match result {
+        Err(Error::NotFound(_)) => {}
+        _ => panic!("Expected NotFound error"),
+    }
+}
+
+#[tokio::test]
+async fn test_update_opponent_empty_name() {
+    let mut mock_repo = MockOpponentRepo::new();
+    let user_id = ObjectId::new();
+    let mut opponent = create_test_opponent();
+    opponent.id = Some(ObjectId::new());
+    opponent.created_by = user_id;
+    let opp_clone = opponent.clone();
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(opp_clone.clone())));
+
+    let service = OpponentServiceImpl::new(Arc::new(mock_repo));
+    let dto = UpdateOpponentDto {
+        name: Some("  ".to_string()),
+        image: None,
+    };
+    let result = service
+        .update_opponent(&opponent.id.unwrap(), dto, &user_id)
+        .await;
+    assert!(result.is_err());
+    match result {
+        Err(Error::ValidationError(_)) => {}
+        _ => panic!("Expected ValidationError"),
+    }
+}
+
+#[tokio::test]
+async fn test_delete_opponent_success() {
+    let mut mock_repo = MockOpponentRepo::new();
+    let user_id = ObjectId::new();
+    let mut opponent = create_test_opponent();
+    opponent.id = Some(ObjectId::new());
+    opponent.created_by = user_id;
+    let opp_clone = opponent.clone();
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(opp_clone.clone())));
+    mock_repo
+        .expect_delete()
+        .times(1)
+        .returning(|_| Ok(()));
+
+    let service = OpponentServiceImpl::new(Arc::new(mock_repo));
+    let result = service
+        .delete_opponent(&opponent.id.unwrap(), &user_id)
+        .await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_delete_opponent_forbidden() {
+    let mut mock_repo = MockOpponentRepo::new();
+    let mut opponent = create_test_opponent();
+    opponent.id = Some(ObjectId::new());
+    let opp_clone = opponent.clone();
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(opp_clone.clone())));
+
+    let service = OpponentServiceImpl::new(Arc::new(mock_repo));
+    let other_user_id = ObjectId::new();
+    let result = service
+        .delete_opponent(&opponent.id.unwrap(), &other_user_id)
+        .await;
+    assert!(result.is_err());
+    match result {
+        Err(Error::Forbidden(_)) => {}
+        _ => panic!("Expected Forbidden error"),
     }
 }
 
