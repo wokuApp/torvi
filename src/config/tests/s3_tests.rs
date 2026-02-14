@@ -1,4 +1,5 @@
 use crate::config::s3::S3Config;
+use serial_test::serial;
 use std::env;
 
 fn setup() {
@@ -9,6 +10,7 @@ fn setup() {
 }
 
 #[test]
+#[serial]
 fn test_s3_config_success() {
     // Arrange
     setup();
@@ -30,6 +32,7 @@ fn test_s3_config_success() {
 }
 
 #[test]
+#[serial]
 fn test_s3_config_missing_region() {
     // Arrange
     setup();
@@ -49,6 +52,7 @@ fn test_s3_config_missing_region() {
 }
 
 #[test]
+#[serial]
 fn test_s3_config_missing_access_key_id() {
     // Arrange
     setup();
@@ -68,6 +72,7 @@ fn test_s3_config_missing_access_key_id() {
 }
 
 #[test]
+#[serial]
 fn test_s3_config_missing_secret_access_key() {
     // Arrange
     setup();
@@ -87,6 +92,7 @@ fn test_s3_config_missing_secret_access_key() {
 }
 
 #[test]
+#[serial]
 fn test_s3_config_missing_bucket() {
     // Arrange
     setup();
@@ -106,6 +112,7 @@ fn test_s3_config_missing_bucket() {
 }
 
 #[test]
+#[serial]
 fn test_s3_config_empty_values() {
     // Arrange
     setup();
@@ -127,6 +134,7 @@ fn test_s3_config_empty_values() {
 }
 
 #[test]
+#[serial]
 fn test_s3_config_whitespace_values() {
     // Arrange
     setup();
@@ -148,6 +156,7 @@ fn test_s3_config_whitespace_values() {
 }
 
 #[test]
+#[serial]
 fn test_s3_config_special_characters() {
     // Arrange
     setup();
@@ -172,7 +181,7 @@ fn test_s3_config_special_characters() {
 mod rocket_tests {
     use super::*;
     use crate::config::s3;
-    use rocket::local::blocking::Client;
+    use rocket::local::asynchronous::Client;
     use rocket::{Build, Rocket};
 
     async fn setup_rocket() -> Rocket<Build> {
@@ -180,6 +189,7 @@ mod rocket_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_s3_fairing_success() {
         // Arrange
         setup();
@@ -190,7 +200,7 @@ mod rocket_tests {
 
         // Act
         let rocket = setup_rocket().await;
-        let client = Client::tracked(rocket).expect("valid rocket instance");
+        let client = Client::tracked(rocket).await.expect("valid rocket instance");
 
         // Assert
         let config = client
@@ -204,6 +214,7 @@ mod rocket_tests {
     }
 
     #[tokio::test]
+    #[serial]
     #[should_panic(expected = "Failed to initialize S3 configuration")]
     async fn test_s3_fairing_failure() {
         // Arrange
@@ -211,7 +222,7 @@ mod rocket_tests {
         // No environment variables set
 
         // Act & Assert
-        let _ = setup_rocket().await;
-        // Should panic with "Failed to initialize S3 configuration"
+        let rocket = setup_rocket().await;
+        let _client = Client::tracked(rocket).await;
     }
 }

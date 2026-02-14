@@ -1,4 +1,4 @@
-use mongodb::bson::{DateTime, oid::ObjectId};
+use mongodb::bson::{oid::ObjectId, DateTime};
 use serde_json;
 
 use crate::modules::auth::model::{AuthUserResponse, JwtClaims, LoginDto, LoginResponse};
@@ -9,7 +9,7 @@ fn test_auth_user_response_from_user() {
     // Arrange
     let user_id = ObjectId::new();
     let user = User {
-        id: user_id,
+        id: Some(user_id),
         email: "test@example.com".to_string(),
         name: "Test User".to_string(),
         password: "hashed_password".to_string(),
@@ -21,7 +21,7 @@ fn test_auth_user_response_from_user() {
     let auth_response = AuthUserResponse::from(user.clone());
 
     // Assert
-    assert_eq!(auth_response.id, user.id);
+    assert_eq!(auth_response.id, user_id);
     assert_eq!(auth_response.email, user.email);
     assert_eq!(auth_response.name, user.name);
 }
@@ -72,6 +72,7 @@ fn test_jwt_claims_serialization_deserialization() {
     let claims = JwtClaims {
         sub: "user123".to_string(),
         email: "test@example.com".to_string(),
+        exp: 9999999999,
     };
 
     // Act
@@ -81,4 +82,5 @@ fn test_jwt_claims_serialization_deserialization() {
     // Assert
     assert_eq!(deserialized.sub, "user123");
     assert_eq!(deserialized.email, "test@example.com");
+    assert_eq!(deserialized.exp, 9999999999);
 }

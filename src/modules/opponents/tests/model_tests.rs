@@ -164,6 +164,12 @@ fn test_opponent_serialization() {
     // Assert
     assert!(serialized.contains("Test Opponent"));
     assert!(serialized.contains("https://example.com/image.jpg"));
-    assert!(!serialized.contains("_id"));
-    assert!(!serialized.contains("updated_at"));
+    assert!(!serialized.contains("\"_id\""));
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&serialized)
+            .unwrap()
+            .get("updated_at")
+            .unwrap(),
+        &serde_json::Value::Null
+    );
 }

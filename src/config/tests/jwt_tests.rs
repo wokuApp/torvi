@@ -1,4 +1,5 @@
 use crate::config::jwt::JwtConfig;
+use serial_test::serial;
 use std::env;
 
 fn setup() {
@@ -6,6 +7,7 @@ fn setup() {
 }
 
 #[test]
+#[serial]
 fn test_jwt_config_success() {
     // Arrange
     setup();
@@ -21,6 +23,7 @@ fn test_jwt_config_success() {
 }
 
 #[test]
+#[serial]
 fn test_jwt_config_missing_secret() {
     // Arrange
     setup();
@@ -37,6 +40,7 @@ fn test_jwt_config_missing_secret() {
 }
 
 #[test]
+#[serial]
 fn test_jwt_config_empty_secret() {
     // Arrange
     setup();
@@ -52,6 +56,7 @@ fn test_jwt_config_empty_secret() {
 }
 
 #[test]
+#[serial]
 fn test_jwt_config_whitespace_secret() {
     // Arrange
     setup();
@@ -67,6 +72,7 @@ fn test_jwt_config_whitespace_secret() {
 }
 
 #[test]
+#[serial]
 fn test_jwt_config_special_characters() {
     // Arrange
     setup();
@@ -85,7 +91,7 @@ fn test_jwt_config_special_characters() {
 mod rocket_tests {
     use super::*;
     use crate::config::jwt;
-    use rocket::local::blocking::Client;
+    use rocket::local::asynchronous::Client;
     use rocket::{Build, Rocket};
 
     async fn setup_rocket() -> Rocket<Build> {
@@ -93,6 +99,7 @@ mod rocket_tests {
     }
 
     #[tokio::test]
+    #[serial]
     async fn test_jwt_fairing_success() {
         // Arrange
         setup();
@@ -100,7 +107,7 @@ mod rocket_tests {
 
         // Act
         let rocket = setup_rocket().await;
-        let client = Client::tracked(rocket).expect("valid rocket instance");
+        let client = Client::tracked(rocket).await.expect("valid rocket instance");
 
         // Assert
         let config = client
@@ -111,6 +118,7 @@ mod rocket_tests {
     }
 
     #[tokio::test]
+    #[serial]
     #[should_panic(expected = "Failed to initialize JWT configuration")]
     async fn test_jwt_fairing_failure() {
         // Arrange
@@ -118,12 +126,13 @@ mod rocket_tests {
         // No environment variables set
 
         // Act & Assert
-        let _ = setup_rocket().await;
-        // Should panic with "Failed to initialize JWT configuration"
+        let rocket = setup_rocket().await;
+        let _client = Client::tracked(rocket).await;
     }
 }
 
 #[test]
+#[serial]
 fn test_jwt_config_unicode_characters() {
     // Arrange
     setup();
@@ -139,6 +148,7 @@ fn test_jwt_config_unicode_characters() {
 }
 
 #[test]
+#[serial]
 fn test_jwt_config_long_secret() {
     // Arrange
     setup();
@@ -155,6 +165,7 @@ fn test_jwt_config_long_secret() {
 }
 
 #[test]
+#[serial]
 fn test_jwt_config_newline_characters() {
     // Arrange
     setup();

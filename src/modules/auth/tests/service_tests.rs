@@ -1,5 +1,5 @@
 use crate::modules::auth::{
-    model::{AuthUserResponse, JwtClaims},
+    model::JwtClaims,
     service::{AuthConfig, AuthService, AuthServiceImpl},
 };
 use crate::modules::users::{model::User, service::UserService};
@@ -7,19 +7,25 @@ use async_trait::async_trait;
 use mockall::mock;
 use mongodb::bson::{oid::ObjectId, DateTime};
 
-// Crear el mock del UserService
 mock! {
     UserService {}
 
     #[async_trait]
     impl UserService for UserService {
+        async fn create_user(
+            &self,
+            email: String,
+            name: String,
+            password: String,
+        ) -> Result<User, String>;
+        async fn find_by_email(&self, email: &str) -> Result<Option<User>, String>;
         async fn verify_credentials(&self, email: &str, password: &str) -> Result<Option<User>, String>;
     }
 }
 
 fn create_test_user() -> User {
     User {
-        id: ObjectId::new(),
+        id: Some(ObjectId::new()),
         email: "test@example.com".to_string(),
         name: "Test User".to_string(),
         password: "hashed_password".to_string(),
@@ -108,7 +114,7 @@ fn test_verify_token_success() {
     let user_id = ObjectId::new().to_string();
     let email = "test@example.com".to_string();
     let token = auth_service
-        .create_token(user_id.clone(), email.clone())
+        .generate_token(user_id.clone(), email.clone())
         .unwrap();
 
     // Act
@@ -149,8 +155,9 @@ fn test_generate_token() {
 
     let user_id = ObjectId::new().to_string();
     let email = "test@example.com".to_string();
+
     // Act
-    let result = auth_service.create_token(user_id.clone(), email.clone());
+    let result = auth_service.generate_token(user_id.clone(), email.clone());
 
     // Assert
     assert!(result.is_ok());
