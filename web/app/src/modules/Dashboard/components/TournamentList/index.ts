@@ -1,0 +1,1 @@
+export { TournamentList } from './TournamentList'
