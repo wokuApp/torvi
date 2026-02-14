@@ -6,7 +6,7 @@ use rocket::State;
 use crate::common::guards::AuthenticatedUser;
 use crate::error::Error;
 use crate::modules::tournaments::{
-    model::{CreateTournamentDto, TournamentResponse, VoteMatchDto},
+    model::{CreateTournamentDto, TournamentResponse, VoterId, VoteMatchDto},
     service::TournamentService,
 };
 
@@ -31,7 +31,7 @@ pub async fn vote_match(
     vote_dto: Json<VoteMatchDto>,
 ) -> Result<Json<TournamentResponse>, Error> {
     let tournament = service
-        .vote_match(vote_dto.into_inner(), auth.user_id)
+        .vote_match(vote_dto.into_inner(), VoterId::Registered(auth.user_id))
         .await
         .map_err(|e| Error::BadRequest(e))?;
 

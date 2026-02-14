@@ -1,7 +1,7 @@
 use crate::modules::tournaments::{
     model::{
         CreateTournamentDto, Match, OpponentDto, Round, Tournament, TournamentOpponent,
-        TournamentStatus, UserDto, VoteMatchDto,
+        TournamentStatus, UserDto, VoterId, VoteMatchDto,
     },
     repository::TournamentRepository,
     service::{TournamentService, TournamentServiceImpl},
@@ -131,7 +131,7 @@ async fn test_vote_match_success() {
     tournament.id = Some(tournament_id);
 
     let match_id = tournament.rounds[0].matches[0].match_id.clone();
-    let user_id = tournament.users[0].user_id;
+    let voter_id = tournament.users[0].voter_id.clone();
     let opponent1 = tournament.rounds[0].matches[0].opponent1;
 
     mock_repo
@@ -149,7 +149,7 @@ async fn test_vote_match_success() {
     };
 
     // Act
-    let result = service.vote_match(vote_dto, user_id).await;
+    let result = service.vote_match(vote_dto, voter_id).await;
 
     // Assert
     assert!(result.is_ok());
@@ -165,7 +165,7 @@ async fn test_vote_match_tournament_not_found() {
         .returning(|_| Ok(None));
 
     let service = TournamentServiceImpl::new(Arc::new(mock_repo));
-    let user_id = ObjectId::new();
+    let voter_id = VoterId::Registered(ObjectId::new());
     let vote_dto = VoteMatchDto {
         tournament_id: ObjectId::new(),
         match_id: "test_match".to_string(),
@@ -173,7 +173,7 @@ async fn test_vote_match_tournament_not_found() {
     };
 
     // Act
-    let result = service.vote_match(vote_dto, user_id).await;
+    let result = service.vote_match(vote_dto, voter_id).await;
 
     // Assert
     assert!(result.is_err());
@@ -192,7 +192,7 @@ async fn test_complete_tournament() {
     tournament.rounds[0].matches[0].winner = Some(winner_id);
 
     let match_id = tournament.rounds[0].matches[0].match_id.clone();
-    let user_id = tournament.users[0].user_id;
+    let voter_id = tournament.users[0].voter_id.clone();
 
     mock_repo
         .expect_find_by_id()
@@ -209,7 +209,7 @@ async fn test_complete_tournament() {
     };
 
     // Act
-    let result = service.vote_match(vote_dto, user_id).await;
+    let result = service.vote_match(vote_dto, voter_id).await;
 
     // Assert
     assert!(result.is_ok());
@@ -235,7 +235,7 @@ async fn test_create_next_round() {
 
     let tournament_id = tournament.id.unwrap();
     let match_id = tournament.rounds[0].matches[0].match_id.clone();
-    let user_id = tournament.users[0].user_id;
+    let voter_id = tournament.users[0].voter_id.clone();
     let opponent1 = tournament.rounds[0].matches[0].opponent1;
 
     mock_repo
@@ -254,7 +254,46 @@ async fn test_create_next_round() {
     };
 
     // Act
-    let result = service.vote_match(vote_dto, user_id).await;
+    let result = service.vote_match(vote_dto, voter_id).await;
+
+    // Assert
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_vote_match_anonymous_voter() {
+    // Arrange
+    let mut mock_repo = MockTournamentRepo::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+
+    // Add an anonymous user to the tournament
+    let anonymous_voter = VoterId::Anonymous("anon-session-123".to_string());
+    tournament.users.push(crate::modules::tournaments::model::TournamentUser {
+        voter_id: anonymous_voter.clone(),
+        name: "Anonymous Player".to_string(),
+    });
+
+    let match_id = tournament.rounds[0].matches[0].match_id.clone();
+    let opponent1 = tournament.rounds[0].matches[0].opponent1;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+
+    mock_repo.expect_update().times(1).returning(|_| Ok(()));
+
+    let service = TournamentServiceImpl::new(Arc::new(mock_repo));
+    let vote_dto = VoteMatchDto {
+        tournament_id,
+        match_id,
+        voted_for: opponent1,
+    };
+
+    // Act
+    let result = service.vote_match(vote_dto, anonymous_voter).await;
 
     // Assert
     assert!(result.is_ok());
@@ -276,7 +315,7 @@ async fn test_integration_vote_persists_in_db() {
 
     let tournament_id = tournament.id.unwrap();
     let match_id = tournament.rounds[0].matches[0].match_id.clone();
-    let user_id = tournament.users[0].user_id;
+    let voter_id = tournament.users[0].voter_id.clone();
     let voted_for = tournament.rounds[0].matches[0].opponent1;
 
     let vote_dto = VoteMatchDto {
@@ -284,10 +323,12 @@ async fn test_integration_vote_persists_in_db() {
         match_id,
         voted_for,
     };
-    service.vote_match(vote_dto, user_id).await.unwrap();
+    service.vote_match(vote_dto, voter_id.clone()).await.unwrap();
 
     // Verify the vote was persisted
     let persisted = repo.find_by_id(&tournament_id).await.unwrap().unwrap();
     let persisted_match = &persisted.rounds[0].matches[0];
-    assert!(persisted_match.votes.contains_key(&user_id.to_string()));
+    assert!(persisted_match
+        .votes
+        .contains_key(&voted_for.to_string()));
 }

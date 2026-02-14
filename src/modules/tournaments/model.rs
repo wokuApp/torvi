@@ -2,6 +2,26 @@ use mongodb::bson::{doc, oid::ObjectId, DateTime};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Hash)]
+#[serde(tag = "type", content = "id")]
+pub enum VoterId {
+    Registered(ObjectId),
+    Anonymous(String),
+}
+
+impl VoterId {
+    pub fn as_string(&self) -> String {
+        match self {
+            VoterId::Registered(id) => id.to_string(),
+            VoterId::Anonymous(id) => id.clone(),
+        }
+    }
+
+    pub fn is_anonymous(&self) -> bool {
+        matches!(self, VoterId::Anonymous(_))
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct TournamentOpponent {
     pub opponent_id: ObjectId,
@@ -10,7 +30,7 @@ pub struct TournamentOpponent {
 
 #[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct TournamentUser {
-    pub user_id: ObjectId,
+    pub voter_id: VoterId,
     pub name: String,
 }
 
@@ -19,7 +39,7 @@ pub struct Match {
     pub match_id: String,
     pub opponent1: ObjectId,
     pub opponent2: ObjectId,
-    pub votes: HashMap<String, Vec<ObjectId>>,
+    pub votes: HashMap<String, Vec<VoterId>>,
     pub winner: Option<ObjectId>,
     pub match_date: DateTime,
 }
@@ -76,7 +96,7 @@ impl Tournament {
             users: users
                 .into_iter()
                 .map(|u| TournamentUser {
-                    user_id: u.id,
+                    voter_id: VoterId::Registered(u.id),
                     name: u.name,
                 })
                 .collect(),
@@ -147,12 +167,12 @@ pub struct VoteMatchDto {
 impl Match {
     pub fn process_vote(
         &mut self,
-        user_id: ObjectId,
+        voter_id: VoterId,
         voted_for: ObjectId,
         all_users: &[TournamentUser],
     ) -> Result<Option<ObjectId>, String> {
         for votes in self.votes.values() {
-            if votes.contains(&user_id) {
+            if votes.contains(&voter_id) {
                 return Err("User has already voted".to_string());
             }
         }
@@ -164,7 +184,7 @@ impl Match {
         self.votes
             .entry(voted_for.to_string())
             .or_insert_with(Vec::new)
-            .push(user_id);
+            .push(voter_id);
 
         let total_votes: usize = self.votes.values().map(|v| v.len()).sum();
         if total_votes == all_users.len() {
