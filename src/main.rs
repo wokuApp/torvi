@@ -12,7 +12,7 @@ fn rocket() -> _ {
 
     rocket::build()
         .attach(config::database::init())
-        .attach(config::azure::init())
+        .attach(config::s3::init())
         .attach(config::jwt::init())
         .mount("/api/opponents", modules::opponents::routes())
         .mount("/api/tournaments", modules::tournaments::routes())

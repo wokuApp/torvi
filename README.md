@@ -17,7 +17,7 @@ This server provides a backend infrastructure for running tournaments where idea
 - **Language**: Rust
 - **Web Framework**: Rocket.rs
 - **Database**: MongoDB
-- **Storage**: Azure Blob Storage
+- **Storage**: AWS S3
 - **Authentication**: JWT (JSON Web Tokens)
 - **Testing**: Built-in Rust testing framework
 
@@ -25,7 +25,7 @@ This server provides a backend infrastructure for running tournaments where idea
 
 - Rust (latest stable version)
 - MongoDB
-- Azure Storage
+- AWS CLI / S3 access
 - Cargo (Rust package manager)
 
 ## ⚙️ Configuration
@@ -33,10 +33,11 @@ This server provides a backend infrastructure for running tournaments where idea
 The server requires the following environment variables:
 
 ```env
-# Azure Storage Configuration
-AZURE_STORAGE_ACCOUNT=Azure_storage_account_name
-AZURE_STORAGE_KEY=Azure_storage_access_key
-AZURE_STORAGE_CONTAINER=Azure_storage_container_name
+# AWS S3 Configuration
+AWS_REGION=AWS_region
+AWS_ACCESS_KEY_ID=AWS_access_key_id
+AWS_SECRET_ACCESS_KEY=AWS_secret_access_key
+AWS_S3_BUCKET=S3_bucket_name
 
 # JWT Configuration
 JWT_SECRET=Secret_key_for_JWT_signing

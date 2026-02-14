@@ -1,4 +1,4 @@
-use crate::config::{azure::AzureConfig, database::MongoDB};
+use crate::config::{database::MongoDB, s3::S3Config};
 use crate::modules::images::{
     model::Image,
     service::{ImageService, ImageServiceConfig, ImageServiceImpl},
@@ -16,16 +16,17 @@ mock! {
 }
 
 mock! {
-    AzureStorage {
-        async fn upload_blob(&self, data: Vec<u8>, blob_name: String) -> Result<String, String>;
+    S3Storage {
+        async fn upload_object(&self, data: Vec<u8>, key: String) -> Result<String, String>;
     }
 }
 
-fn create_test_config() -> AzureConfig {
-    AzureConfig {
-        storage_account: "test_account".to_string(),
-        access_key: "test_key".to_string(),
-        container: "test_container".to_string(),
+fn create_test_config() -> S3Config {
+    S3Config {
+        region: "us-east-1".to_string(),
+        access_key_id: "test_key_id".to_string(),
+        secret_access_key: "test_secret_key".to_string(),
+        bucket: "test_bucket".to_string(),
     }
 }
 
@@ -69,7 +70,7 @@ async fn test_upload_image_success() {
     // Assert
     assert!(result.is_ok());
     let image = result.unwrap();
-    assert!(image.url.contains("test_account.blob.core.windows.net"));
+    assert!(image.url.contains("test_bucket.s3.us-east-1.amazonaws.com"));
     assert_eq!(image.image_type, "image/webp");
     assert!(image.size > 0);
     assert!(image.filename.ends_with(".webp"));
@@ -153,21 +154,20 @@ async fn test_resize_image() {
 }
 
 #[tokio::test]
-async fn test_upload_to_azure() {
+async fn test_upload_to_s3() {
     // Arrange
     let mongodb = Arc::new(MockMongoDB::new());
     let config = create_test_config();
     let service = ImageServiceImpl::new(&State::from(mongodb), &config);
 
     let test_data = vec![1, 2, 3, 4];
-    let blob_name = "test.webp";
+    let key = "test.webp";
     // Act
-    let result = service.upload_image_to_azure(test_data, blob_name).await;
+    let result = service.upload_image_to_s3(test_data, key).await;
 
     // Assert
     assert!(result.is_ok());
     let url = result.unwrap();
-    assert!(url.contains("test_account.blob.core.windows.net"));
-    assert!(url.contains("test_container"));
-    assert!(url.contains(blob_name));
+    assert!(url.contains("test_bucket.s3.us-east-1.amazonaws.com"));
+    assert!(url.contains(key));
 }

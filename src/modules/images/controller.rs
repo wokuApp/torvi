@@ -6,8 +6,8 @@ use std::io::Read;
 use uuid::Uuid;
 
 use crate::common::guards::AuthenticatedUser;
-use crate::config::azure::AzureConfig;
 use crate::config::database::MongoDB;
+use crate::config::s3::S3Config;
 use crate::error::Error;
 use crate::modules::images::{
     model::ImageResponse,
@@ -20,7 +20,7 @@ const MAX_FILE_SIZE: u64 = 10 << 20;
 pub async fn upload(
     auth: AuthenticatedUser,
     mongodb: &State<MongoDB>,
-    azure_config: &State<AzureConfig>,
+    s3_config: &State<S3Config>,
     content_type: &ContentType,
     file: Data<'_>,
 ) -> Result<Json<ImageResponse>, Error> {
@@ -34,7 +34,7 @@ pub async fn upload(
         .await
         .map_err(|e| Error::BadRequest(format!("Failed to read file: {}", e)))?;
 
-    let service = ImageServiceImpl::new(mongodb, azure_config);
+    let service = ImageServiceImpl::new(mongodb, s3_config);
 
     let image = service
         .upload_image(
