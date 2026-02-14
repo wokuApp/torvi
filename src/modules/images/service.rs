@@ -59,9 +59,7 @@ impl ImageServiceImpl {
 
         let encoder = webp::Encoder::from_image(&img)
             .map_err(|e| format!("Failed to create WebP encoder: {}", e))?;
-        let memory = encoder
-            .encode(WEBP_QUALITY)
-            .map_err(|e| format!("Failed to encode WebP: {}", e))?;
+        let memory = encoder.encode(WEBP_QUALITY);
 
         let mut webp_data = Vec::new();
         webp_data.extend_from_slice(&memory);
@@ -125,7 +123,7 @@ impl ImageServiceImpl {
     async fn save_image(&self, image: Image) -> Result<Image, String> {
         let collection = self.db.db.collection::<Image>("images");
         collection
-            .insert_one(image.clone(), None)
+            .insert_one(image.clone())
             .await
             .map_err(|e| format!("Failed to save image: {}", e))?;
         Ok(image)
