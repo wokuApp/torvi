@@ -261,3 +261,36 @@ async fn test_create_next_round() {
     // Assert
     assert!(result.is_ok());
 }
+
+// --- Integration tests (require MongoDB) ---
+
+#[tokio::test]
+#[ignore]
+async fn test_integration_vote_persists_in_db() {
+    use crate::config::database::MongoDB;
+    use crate::modules::tournaments::repository::TournamentRepositoryImpl;
+
+    let mongodb = MongoDB::init().await.expect("Failed to init MongoDB");
+    let repo = TournamentRepositoryImpl::new(&mongodb.db);
+    let service = TournamentServiceImpl::new(Box::new(TournamentRepositoryImpl::new(&mongodb.db)));
+    let dto = create_test_tournament_dto();
+    let tournament = service.create_tournament(dto).await.unwrap();
+
+    let tournament_id = tournament.id.unwrap();
+    let match_id = tournament.rounds[0].matches[0].match_id.clone();
+    let user_id = tournament.users[0].user_id;
+    let voted_for = tournament.rounds[0].matches[0].opponent1;
+
+    let vote_dto = VoteMatchDto {
+        tournament_id,
+        match_id,
+        user_id,
+        voted_for,
+    };
+    service.vote_match(vote_dto).await.unwrap();
+
+    // Verify the vote was persisted
+    let persisted = repo.find_by_id(&tournament_id).await.unwrap().unwrap();
+    let persisted_match = &persisted.rounds[0].matches[0];
+    assert!(persisted_match.votes.contains_key(&user_id.to_string()));
+}
