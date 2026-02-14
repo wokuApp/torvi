@@ -1,6 +1,5 @@
-use crate::config::database::MongoDB;
-use crate::config::s3::S3Config;
-use crate::modules::images::model::{Image, ImageResponse};
+use crate::modules::images::model::Image;
+use crate::modules::images::repository::ImageRepository;
 use async_trait::async_trait;
 use aws_credential_types::Credentials;
 use aws_sdk_s3::config::{BehaviorVersion, Region};
@@ -8,7 +7,7 @@ use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::Client;
 use image::{DynamicImage, GenericImageView};
 use mongodb::bson::oid::ObjectId;
-use rocket::State;
+use std::sync::Arc;
 use uuid::Uuid;
 
 const MAX_IMAGE_SIZE: u32 = 1024;
@@ -22,7 +21,7 @@ pub struct ImageServiceConfig {
 }
 
 #[async_trait]
-pub trait ImageService {
+pub trait ImageService: Send + Sync {
     async fn upload_image(
         &self,
         file_data: Vec<u8>,
@@ -30,23 +29,20 @@ pub trait ImageService {
         content_type: String,
         created_by: ObjectId,
     ) -> Result<Image, String>;
+    async fn find_by_id(&self, id: &ObjectId) -> Result<Option<Image>, String>;
+    async fn delete_image(&self, id: &ObjectId, user_id: &ObjectId) -> Result<(), String>;
 }
 
 pub struct ImageServiceImpl {
-    db: MongoDB,
+    image_repository: Arc<dyn ImageRepository>,
     config: ImageServiceConfig,
 }
 
 impl ImageServiceImpl {
-    pub fn new(db: &State<MongoDB>, config: &S3Config) -> Self {
+    pub fn new(image_repository: Arc<dyn ImageRepository>, config: ImageServiceConfig) -> Self {
         Self {
-            db: db.inner().clone(),
-            config: ImageServiceConfig {
-                region: config.region.clone(),
-                access_key_id: config.access_key_id.clone(),
-                secret_access_key: config.secret_access_key.clone(),
-                bucket: config.bucket.clone(),
-            },
+            image_repository,
+            config,
         }
     }
 
@@ -79,14 +75,14 @@ impl ImageServiceImpl {
             ((MAX_IMAGE_SIZE as f32 * ratio) as u32, MAX_IMAGE_SIZE)
         };
 
-        img.resize(new_width, new_height, image::imageops::FilterType::Lanczos3)
+        img.resize(
+            new_width,
+            new_height,
+            image::imageops::FilterType::Lanczos3,
+        )
     }
 
-    async fn upload_to_s3(
-        &self,
-        image_data: Vec<u8>,
-        key: &str,
-    ) -> Result<String, String> {
+    fn create_s3_client(&self) -> Client {
         let credentials = Credentials::new(
             &self.config.access_key_id,
             &self.config.secret_access_key,
@@ -101,7 +97,11 @@ impl ImageServiceImpl {
             .credentials_provider(credentials)
             .build();
 
-        let client = Client::from_conf(s3_config);
+        Client::from_conf(s3_config)
+    }
+
+    async fn upload_to_s3(&self, image_data: Vec<u8>, key: &str) -> Result<String, String> {
+        let client = self.create_s3_client();
 
         client
             .put_object()
@@ -119,13 +119,18 @@ impl ImageServiceImpl {
         ))
     }
 
-    async fn save_image(&self, image: Image) -> Result<Image, String> {
-        let collection = self.db.db.collection::<Image>("images");
-        collection
-            .insert_one(image.clone())
+    async fn delete_from_s3(&self, key: &str) -> Result<(), String> {
+        let client = self.create_s3_client();
+
+        client
+            .delete_object()
+            .bucket(&self.config.bucket)
+            .key(key)
+            .send()
             .await
-            .map_err(|e| format!("Failed to save image: {}", e))?;
-        Ok(image)
+            .map_err(|e| format!("Failed to delete from S3: {}", e))?;
+
+        Ok(())
     }
 }
 
@@ -142,9 +147,7 @@ impl ImageService for ImageServiceImpl {
 
         let key = format!("{}.webp", Uuid::new_v4());
 
-        let url = self
-            .upload_to_s3(optimized_image.clone(), &key)
-            .await?;
+        let url = self.upload_to_s3(optimized_image.clone(), &key).await?;
 
         let image = Image::new(
             url,
@@ -154,8 +157,27 @@ impl ImageService for ImageServiceImpl {
             created_by,
         );
 
-        self.save_image(image.clone()).await?;
+        self.image_repository.save(&image).await?;
 
         Ok(image)
+    }
+
+    async fn find_by_id(&self, id: &ObjectId) -> Result<Option<Image>, String> {
+        self.image_repository.find_by_id(id).await
+    }
+
+    async fn delete_image(&self, id: &ObjectId, user_id: &ObjectId) -> Result<(), String> {
+        let image = self
+            .image_repository
+            .find_by_id(id)
+            .await?
+            .ok_or("Image not found")?;
+
+        if image.created_by != *user_id {
+            return Err("You can only delete your own images".to_string());
+        }
+
+        self.delete_from_s3(&image.filename).await?;
+        self.image_repository.delete(id).await
     }
 }
