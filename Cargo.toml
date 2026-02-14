@@ -24,6 +24,7 @@ jsonwebtoken = "9.3.0"
 serde_json = "1.0.134"
 thiserror = "2.0"
 chrono = { version = "0.4", features = ["serde"] }
+dashmap = "6.1"
 
 [dev-dependencies]
 mockall = "0.13.1"
