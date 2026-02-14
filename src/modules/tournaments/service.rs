@@ -7,6 +7,7 @@ use crate::modules::tournaments::model::{
     VoteMatchDto,
 };
 use crate::modules::tournaments::repository::{InviteRepository, TournamentRepository};
+use crate::modules::websocket::broadcaster::TournamentBroadcaster;
 use async_trait::async_trait;
 use chrono::Utc;
 use mongodb::bson::{oid::ObjectId, DateTime};
@@ -71,6 +72,7 @@ pub struct TournamentServiceImpl {
     tournament_repository: Arc<dyn TournamentRepository>,
     invite_repository: Arc<dyn InviteRepository>,
     auth_service: Arc<dyn AuthService + Send + Sync>,
+    broadcaster: Arc<TournamentBroadcaster>,
 }
 
 impl TournamentServiceImpl {
@@ -78,11 +80,13 @@ impl TournamentServiceImpl {
         tournament_repository: Arc<dyn TournamentRepository>,
         invite_repository: Arc<dyn InviteRepository>,
         auth_service: Arc<dyn AuthService + Send + Sync>,
+        broadcaster: Arc<TournamentBroadcaster>,
     ) -> Self {
         Self {
             tournament_repository,
             invite_repository,
             auth_service,
+            broadcaster,
         }
     }
 

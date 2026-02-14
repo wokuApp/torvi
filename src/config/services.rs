@@ -14,6 +14,7 @@ use crate::modules::tournaments::repository::{InviteRepositoryImpl, TournamentRe
 use crate::modules::tournaments::service::{TournamentService, TournamentServiceImpl};
 use crate::modules::users::repository::UserRepositoryImpl;
 use crate::modules::users::service::{UserService, UserServiceImpl};
+use crate::modules::websocket::broadcaster::TournamentBroadcaster;
 
 pub fn init() -> AdHoc {
     AdHoc::on_ignite("Service Initialization", |rocket| async {
@@ -41,10 +42,12 @@ pub fn init() -> AdHoc {
             },
         ));
         let invite_repo = Arc::new(InviteRepositoryImpl::new(&mongodb.db));
+        let broadcaster = Arc::new(TournamentBroadcaster::new());
         let tournament_service = Arc::new(TournamentServiceImpl::new(
             tournament_repo,
             invite_repo,
             auth_service.clone() as Arc<dyn AuthService + Send + Sync>,
+            Arc::clone(&broadcaster),
         ));
         let opponent_service = Arc::new(OpponentServiceImpl::new(opponent_repo));
         let image_service = Arc::new(ImageServiceImpl::new(
@@ -63,5 +66,6 @@ pub fn init() -> AdHoc {
             .manage(tournament_service as Arc<dyn TournamentService + Send + Sync>)
             .manage(opponent_service as Arc<dyn OpponentService + Send + Sync>)
             .manage(image_service as Arc<dyn ImageService + Send + Sync>)
+            .manage(broadcaster)
     })
 }

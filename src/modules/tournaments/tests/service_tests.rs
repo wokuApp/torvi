@@ -9,6 +9,7 @@ use crate::modules::tournaments::{
     repository::{InviteRepository, TournamentRepository},
     service::{TournamentService, TournamentServiceImpl},
 };
+use crate::modules::websocket::broadcaster::TournamentBroadcaster;
 use async_trait::async_trait;
 use mockall::mock;
 use mongodb::bson::{oid::ObjectId, DateTime};
@@ -53,6 +54,10 @@ mock! {
     }
 }
 
+fn create_broadcaster() -> Arc<TournamentBroadcaster> {
+    Arc::new(TournamentBroadcaster::new())
+}
+
 fn create_service(
     repo: MockTournamentRepo,
     invite_repo: MockInviteRepo,
@@ -62,6 +67,7 @@ fn create_service(
         Arc::new(repo),
         Arc::new(invite_repo),
         Arc::new(auth),
+        create_broadcaster(),
     )
 }
 
