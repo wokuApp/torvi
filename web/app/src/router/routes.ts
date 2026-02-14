@@ -8,7 +8,8 @@ import { TournamentPage } from '@/modules/Tournament/pages/TournamentPage'
 import { ResultsPage } from '@/modules/Tournament/pages/ResultsPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { GuestRoute } from './GuestRoute'
-import { JoinPage, NotFoundPage } from './placeholders'
+import { JoinPage } from '@/modules/Invite/pages/JoinPage'
+import { NotFoundPage } from './placeholders'
 
 export const router = createBrowserRouter([
   {
