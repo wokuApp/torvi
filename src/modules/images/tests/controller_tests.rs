@@ -1,5 +1,5 @@
 use crate::common::guards::AuthenticatedUser;
-use crate::config::{azure::AzureConfig, database::MongoDB};
+use crate::config::{database::MongoDB, s3::S3Config};
 use crate::modules::images::{controller, model::ImageResponse};
 use mongodb::bson::oid::ObjectId;
 use rocket::{
@@ -14,15 +14,16 @@ async fn setup_rocket() -> Rocket<Build> {
         .await
         .expect("Failed to initialize MongoDB for testing");
 
-    let azure_config = AzureConfig {
-        storage_account: "test_account".to_string(),
-        access_key: "test_key".to_string(),
-        container: "test_container".to_string(),
+    let s3_config = S3Config {
+        region: "us-east-1".to_string(),
+        access_key_id: "test_key_id".to_string(),
+        secret_access_key: "test_secret_key".to_string(),
+        bucket: "test_bucket".to_string(),
     };
 
     rocket::build()
         .manage(mongodb)
-        .manage(azure_config)
+        .manage(s3_config)
         .mount("/api/images", controller::routes())
 }
 
@@ -30,14 +31,14 @@ fn create_test_image() -> Vec<u8> {
     let width = 100;
     let height = 100;
     let mut img = image::RgbaImage::new(width, height);
-    
+
     // Crear una imagen de prueba simple
     for x in 0..width {
         for y in 0..height {
             img.put_pixel(x, y, image::Rgba([255, 0, 0, 255]));
         }
     }
-    
+
     let mut bytes: Vec<u8> = Vec::new();
     img.write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Png)
         .unwrap();
@@ -58,7 +59,7 @@ async fn test_upload_image_success() {
     let rocket = setup_rocket().await;
     let client = Client::tracked(rocket).expect("valid rocket instance");
     let image_data = create_test_image();
-    
+
     // Act
     let response = client
         .post("/api/images/upload")
@@ -69,12 +70,12 @@ async fn test_upload_image_success() {
 
     // Assert
     assert_eq!(response.status(), Status::Ok);
-    
+
     let response_body: ImageResponse = serde_json::from_str(
         &response.into_string().unwrap()
     ).unwrap();
 
-    assert!(response_body.url.contains("test_account.blob.core.windows.net"));
+    assert!(response_body.url.contains("s3.us-east-1.amazonaws.com"));
     assert_eq!(response_body.image_type, "image/webp");
     assert!(response_body.size > 0);
 }
@@ -84,7 +85,7 @@ async fn test_upload_invalid_content_type() {
     // Arrange
     let rocket = setup_rocket().await;
     let client = Client::tracked(rocket).expect("valid rocket instance");
-    
+
     // Act
     let response = client
         .post("/api/images/upload")
@@ -103,7 +104,7 @@ async fn test_upload_without_auth() {
     let rocket = setup_rocket().await;
     let client = Client::tracked(rocket).expect("valid rocket instance");
     let image_data = create_test_image();
-    
+
     // Act
     let response = client
         .post("/api/images/upload")
@@ -120,9 +121,9 @@ async fn test_upload_large_file() {
     // Arrange
     let rocket = setup_rocket().await;
     let client = Client::tracked(rocket).expect("valid rocket instance");
-    
+
     let large_data = vec![0u8; (10 << 20) + 1]; // 10MB + 1 byte
-    
+
     // Act
     let response = client
         .post("/api/images/upload")
@@ -140,7 +141,7 @@ async fn test_upload_empty_file() {
     // Arrange
     let rocket = setup_rocket().await;
     let client = Client::tracked(rocket).expect("valid rocket instance");
-    
+
     // Act
     let response = client
         .post("/api/images/upload")
@@ -159,7 +160,7 @@ async fn test_upload_corrupted_image() {
     let rocket = setup_rocket().await;
     let client = Client::tracked(rocket).expect("valid rocket instance");
     let corrupted_data = vec![1, 2, 3, 4];
-    
+
     // Act
     let response = client
         .post("/api/images/upload")

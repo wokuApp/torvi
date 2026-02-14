@@ -1,9 +1,11 @@
-use crate::config::azure::AzureConfig;
 use crate::config::database::MongoDB;
+use crate::config::s3::S3Config;
 use crate::modules::images::model::{Image, ImageResponse};
 use async_trait::async_trait;
-use azure_storage::prelude::*;
-use azure_storage_blobs::prelude::*;
+use aws_credential_types::Credentials;
+use aws_sdk_s3::config::{BehaviorVersion, Region};
+use aws_sdk_s3::primitives::ByteStream;
+use aws_sdk_s3::Client;
 use image::{DynamicImage, ImageFormat};
 use mongodb::bson::ObjectId;
 use rocket::State;
@@ -14,9 +16,10 @@ const MAX_IMAGE_SIZE: u32 = 1024;
 const WEBP_QUALITY: f32 = 80.0;
 
 pub struct ImageServiceConfig {
-    pub storage_account: String,
-    pub access_key: String,
-    pub container: String,
+    pub region: String,
+    pub access_key_id: String,
+    pub secret_access_key: String,
+    pub bucket: String,
 }
 
 #[async_trait]
@@ -36,13 +39,14 @@ pub struct ImageServiceImpl {
 }
 
 impl ImageServiceImpl {
-    pub fn new(db: &'static State<MongoDB>, config: &AzureConfig) -> Self {
+    pub fn new(db: &'static State<MongoDB>, config: &S3Config) -> Self {
         Self {
             db,
             config: ImageServiceConfig {
-                storage_account: config.storage_account.clone(),
-                access_key: config.access_key.clone(),
-                container: config.container.clone(),
+                region: config.region.clone(),
+                access_key_id: config.access_key_id.clone(),
+                secret_access_key: config.secret_access_key.clone(),
+                bucket: config.bucket.clone(),
             },
         }
     }
@@ -53,13 +57,13 @@ impl ImageServiceImpl {
 
         let img = self.resize_image(img);
 
-        let mut webp_data = Vec::new();
         let encoder = webp::Encoder::from_image(&img)
             .map_err(|e| format!("Failed to create WebP encoder: {}", e))?;
         let memory = encoder
             .encode(WEBP_QUALITY)
             .map_err(|e| format!("Failed to encode WebP: {}", e))?;
 
+        let mut webp_data = Vec::new();
         webp_data.extend_from_slice(&memory);
         Ok(webp_data)
     }
@@ -81,29 +85,40 @@ impl ImageServiceImpl {
         img.resize(new_width, new_height, image::imageops::FilterType::Lanczos3)
     }
 
-    async fn upload_to_azure(
+    async fn upload_to_s3(
         &self,
         image_data: Vec<u8>,
-        blob_name: &str,
+        key: &str,
     ) -> Result<String, String> {
-        let storage_credentials = StorageCredentials::access_key(
-            self.config.storage_account.clone(),
-            self.config.access_key.clone(),
+        let credentials = Credentials::new(
+            &self.config.access_key_id,
+            &self.config.secret_access_key,
+            None,
+            None,
+            "torvi",
         );
 
-        let blob_client =
-            ClientBuilder::new(self.config.storage_account.clone(), storage_credentials)
-                .blob_client(&self.config.container, blob_name.to_string());
+        let s3_config = aws_sdk_s3::Config::builder()
+            .behavior_version(BehaviorVersion::latest())
+            .region(Region::new(self.config.region.clone()))
+            .credentials_provider(credentials)
+            .build();
 
-        blob_client
-            .put_block_blob(image_data)
+        let client = Client::from_conf(s3_config);
+
+        client
+            .put_object()
+            .bucket(&self.config.bucket)
+            .key(key)
+            .body(ByteStream::from(image_data))
             .content_type("image/webp")
+            .send()
             .await
-            .map_err(|e| format!("Failed to upload to Azure: {}", e))?;
+            .map_err(|e| format!("Failed to upload to S3: {}", e))?;
 
         Ok(format!(
-            "https://{}.blob.core.windows.net/{}/{}",
-            self.config.storage_account, self.config.container, blob_name
+            "https://{}.s3.{}.amazonaws.com/{}",
+            self.config.bucket, self.config.region, key
         ))
     }
 
@@ -128,17 +143,17 @@ impl ImageService for ImageServiceImpl {
     ) -> Result<Image, String> {
         let optimized_image = self.optimize_image(file_data).await?;
 
-        let blob_name = format!("{}.webp", Uuid::new_v4());
+        let key = format!("{}.webp", Uuid::new_v4());
 
         let url = self
-            .upload_to_azure(optimized_image.clone(), &blob_name)
+            .upload_to_s3(optimized_image.clone(), &key)
             .await?;
 
         let image = Image::new(
             url,
             "image/webp".to_string(),
             optimized_image.len() as i64,
-            blob_name,
+            key,
             created_by,
         );
 
