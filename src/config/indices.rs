@@ -62,6 +62,17 @@ pub fn init() -> AdHoc {
             .await
             .expect("Failed to create index on images.created_by+created_at");
 
+        // Unique index on tournament_invites.code
+        db.collection::<mongodb::bson::Document>("tournament_invites")
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "code": 1 })
+                    .options(IndexOptions::builder().unique(true).build())
+                    .build(),
+            )
+            .await
+            .expect("Failed to create unique index on tournament_invites.code");
+
         rocket
     })
 }
