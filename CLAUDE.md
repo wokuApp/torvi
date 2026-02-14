@@ -1,5 +1,7 @@
 # CLAUDE.md - Torvi Project Guidelines
 
+**CRITICAL: All code, including comments, must be in English.**
+
 ## Project Overview
 
 Torvi is a Rust backend server for managing single-elimination tournament brackets for image-based idea competitions. Built with Rocket.rs, MongoDB, and AWS S3.
@@ -194,20 +196,20 @@ git commit -m ":heavy_minus_sign: remove unused dependency"
 
 ### Common Gitmoji Reference
 
-| Emoji | Code | Usage |
-|-------|------|-------|
-| :sparkles: | `:sparkles:` | New feature |
-| :bug: | `:bug:` | Bug fix |
-| :art: | `:art:` | Structure/format improvement |
-| :recycle: | `:recycle:` | Refactoring |
-| :white_check_mark: | `:white_check_mark:` | Add/update tests |
-| :memo: | `:memo:` | Documentation |
-| :heavy_plus_sign: | `:heavy_plus_sign:` | Add dependency |
-| :heavy_minus_sign: | `:heavy_minus_sign:` | Remove dependency |
-| :fire: | `:fire:` | Remove code/files |
-| :construction: | `:construction:` | Work in progress |
-| :lock: | `:lock:` | Security fix |
-| :wrench: | `:wrench:` | Configuration change |
-| :tada: | `:tada:` | Initial commit / begin project |
-| :rocket: | `:rocket:` | Deploy |
-| :ambulance: | `:ambulance:` | Critical hotfix |
+| Emoji              | Code                 | Usage                          |
+| ------------------ | -------------------- | ------------------------------ |
+| :sparkles:         | `:sparkles:`         | New feature                    |
+| :bug:              | `:bug:`              | Bug fix                        |
+| :art:              | `:art:`              | Structure/format improvement   |
+| :recycle:          | `:recycle:`          | Refactoring                    |
+| :white_check_mark: | `:white_check_mark:` | Add/update tests               |
+| :memo:             | `:memo:`             | Documentation                  |
+| :heavy_plus_sign:  | `:heavy_plus_sign:`  | Add dependency                 |
+| :heavy_minus_sign: | `:heavy_minus_sign:` | Remove dependency              |
+| :fire:             | `:fire:`             | Remove code/files              |
+| :construction:     | `:construction:`     | Work in progress               |
+| :lock:             | `:lock:`             | Security fix                   |
+| :wrench:           | `:wrench:`           | Configuration change           |
+| :tada:             | `:tada:`             | Initial commit / begin project |
+| :rocket:           | `:rocket:`           | Deploy                         |
+| :ambulance:        | `:ambulance:`        | Critical hotfix                |
