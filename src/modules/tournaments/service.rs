@@ -1,8 +1,10 @@
 use crate::modules::auth::service::AuthService;
+use crate::common::pagination::{PaginatedResponse, PaginationParams};
 use crate::modules::tournaments::model::{
     CreateInviteDto, CreateTournamentDto, InviteResponse, JoinTournamentDto,
     JoinTournamentResponse, Match, OpponentDto, Round, Tournament, TournamentInvite,
-    TournamentStatus, TournamentUser, VoterId, VoteMatchDto,
+    TournamentResponse, TournamentStatus, TournamentUser, UpdateTournamentDto, VoterId,
+    VoteMatchDto,
 };
 use crate::modules::tournaments::repository::{InviteRepository, TournamentRepository};
 use async_trait::async_trait;
@@ -17,7 +19,36 @@ pub trait TournamentService: Send + Sync {
     async fn create_tournament(
         &self,
         tournament_dto: CreateTournamentDto,
+        created_by: ObjectId,
     ) -> Result<Tournament, String>;
+    async fn find_by_id(&self, id: &ObjectId) -> Result<Option<Tournament>, String>;
+    async fn find_by_creator(
+        &self,
+        user_id: &ObjectId,
+        params: PaginationParams,
+    ) -> Result<PaginatedResponse<TournamentResponse>, String>;
+    async fn update_tournament(
+        &self,
+        id: &ObjectId,
+        dto: UpdateTournamentDto,
+        user_id: &ObjectId,
+    ) -> Result<Tournament, String>;
+    async fn delete_tournament(&self, id: &ObjectId, user_id: &ObjectId) -> Result<(), String>;
+    async fn pause_tournament(
+        &self,
+        id: &ObjectId,
+        user_id: &ObjectId,
+    ) -> Result<Tournament, String>;
+    async fn resume_tournament(
+        &self,
+        id: &ObjectId,
+        user_id: &ObjectId,
+    ) -> Result<Tournament, String>;
+    async fn get_match_detail(
+        &self,
+        tournament_id: &ObjectId,
+        match_id: &str,
+    ) -> Result<Match, String>;
     async fn vote_match(
         &self,
         vote_dto: VoteMatchDto,
@@ -132,6 +163,7 @@ impl TournamentService for TournamentServiceImpl {
     async fn create_tournament(
         &self,
         tournament_dto: CreateTournamentDto,
+        created_by: ObjectId,
     ) -> Result<Tournament, String> {
         if tournament_dto.name.trim().is_empty() {
             return Err("Tournament name cannot be empty".to_string());
@@ -146,6 +178,7 @@ impl TournamentService for TournamentServiceImpl {
         let initial_round = self.create_initial_round(&tournament_dto.opponents);
         let tournament = Tournament::new(
             tournament_dto.name,
+            created_by,
             tournament_dto.opponents,
             tournament_dto.users,
             initial_round,
@@ -155,6 +188,149 @@ impl TournamentService for TournamentServiceImpl {
             Ok(_) => Ok(tournament),
             Err(e) => Err(format!("Error creating tournament: {}", e)),
         }
+    }
+
+    async fn find_by_id(&self, id: &ObjectId) -> Result<Option<Tournament>, String> {
+        self.tournament_repository.find_by_id(id).await
+    }
+
+    async fn find_by_creator(
+        &self,
+        user_id: &ObjectId,
+        params: PaginationParams,
+    ) -> Result<PaginatedResponse<TournamentResponse>, String> {
+        let cursor = params.cursor_oid()?;
+        let limit = params.effective_limit();
+
+        let tournaments = self
+            .tournament_repository
+            .find_by_creator(user_id, cursor, limit)
+            .await?;
+
+        Ok(PaginatedResponse::with_cursor(
+            tournaments
+                .into_iter()
+                .filter(|t| t.id.is_some())
+                .map(TournamentResponse::from)
+                .collect(),
+            limit,
+            |t| t.id.to_string(),
+        ))
+    }
+
+    async fn update_tournament(
+        &self,
+        id: &ObjectId,
+        dto: UpdateTournamentDto,
+        user_id: &ObjectId,
+    ) -> Result<Tournament, String> {
+        let mut tournament = self
+            .tournament_repository
+            .find_by_id(id)
+            .await?
+            .ok_or("Tournament not found")?;
+
+        if tournament.created_by != *user_id {
+            return Err("You can only update your own tournaments".to_string());
+        }
+
+        if let Some(name) = dto.name {
+            if name.trim().is_empty() {
+                return Err("Tournament name cannot be empty".to_string());
+            }
+            tournament.name = name.trim().to_string();
+        }
+
+        tournament.updated_at = DateTime::now();
+        self.tournament_repository.update(&tournament).await?;
+
+        Ok(tournament)
+    }
+
+    async fn delete_tournament(&self, id: &ObjectId, user_id: &ObjectId) -> Result<(), String> {
+        let tournament = self
+            .tournament_repository
+            .find_by_id(id)
+            .await?
+            .ok_or("Tournament not found")?;
+
+        if tournament.created_by != *user_id {
+            return Err("You can only delete your own tournaments".to_string());
+        }
+
+        self.tournament_repository.delete(id).await
+    }
+
+    async fn pause_tournament(
+        &self,
+        id: &ObjectId,
+        user_id: &ObjectId,
+    ) -> Result<Tournament, String> {
+        let mut tournament = self
+            .tournament_repository
+            .find_by_id(id)
+            .await?
+            .ok_or("Tournament not found")?;
+
+        if tournament.created_by != *user_id {
+            return Err("You can only pause your own tournaments".to_string());
+        }
+
+        if !matches!(tournament.status, TournamentStatus::Active) {
+            return Err("Tournament is not active".to_string());
+        }
+
+        tournament.status = TournamentStatus::Paused;
+        tournament.updated_at = DateTime::now();
+        self.tournament_repository.update(&tournament).await?;
+
+        Ok(tournament)
+    }
+
+    async fn resume_tournament(
+        &self,
+        id: &ObjectId,
+        user_id: &ObjectId,
+    ) -> Result<Tournament, String> {
+        let mut tournament = self
+            .tournament_repository
+            .find_by_id(id)
+            .await?
+            .ok_or("Tournament not found")?;
+
+        if tournament.created_by != *user_id {
+            return Err("You can only resume your own tournaments".to_string());
+        }
+
+        if !matches!(tournament.status, TournamentStatus::Paused) {
+            return Err("Tournament is not paused".to_string());
+        }
+
+        tournament.status = TournamentStatus::Active;
+        tournament.updated_at = DateTime::now();
+        self.tournament_repository.update(&tournament).await?;
+
+        Ok(tournament)
+    }
+
+    async fn get_match_detail(
+        &self,
+        tournament_id: &ObjectId,
+        match_id: &str,
+    ) -> Result<Match, String> {
+        let tournament = self
+            .tournament_repository
+            .find_by_id(tournament_id)
+            .await?
+            .ok_or("Tournament not found")?;
+
+        for round in &tournament.rounds {
+            if let Some(m) = round.matches.iter().find(|m| m.match_id == match_id) {
+                return Ok(m.clone());
+            }
+        }
+
+        Err("Match not found".to_string())
     }
 
     async fn vote_match(

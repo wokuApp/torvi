@@ -7,6 +7,12 @@ use mongodb::Database;
 pub trait TournamentRepository: Send + Sync {
     async fn create(&self, tournament: Tournament) -> Result<(), String>;
     async fn find_by_id(&self, id: &ObjectId) -> Result<Option<Tournament>, String>;
+    async fn find_by_creator(
+        &self,
+        user_id: &ObjectId,
+        cursor: Option<ObjectId>,
+        limit: i64,
+    ) -> Result<Vec<Tournament>, String>;
     async fn update(&self, tournament: &Tournament) -> Result<(), String>;
     async fn delete(&self, id: &ObjectId) -> Result<(), String>;
 }
@@ -38,6 +44,36 @@ impl TournamentRepository for TournamentRepositoryImpl {
             .find_one(doc! { "_id": id })
             .await
             .map_err(|e| format!("Error finding tournament: {}", e))
+    }
+
+    async fn find_by_creator(
+        &self,
+        user_id: &ObjectId,
+        cursor: Option<ObjectId>,
+        limit: i64,
+    ) -> Result<Vec<Tournament>, String> {
+        use futures::TryStreamExt;
+        use mongodb::options::FindOptions;
+
+        let mut filter = doc! { "created_by": user_id };
+        if let Some(cursor_id) = cursor {
+            filter.insert("_id", doc! { "$lt": cursor_id });
+        }
+
+        let options = FindOptions::builder()
+            .sort(doc! { "_id": -1 })
+            .limit(limit + 1)
+            .build();
+
+        self.db
+            .collection::<Tournament>("tournaments")
+            .find(filter)
+            .with_options(options)
+            .await
+            .map_err(|e| format!("Error finding tournaments: {}", e))?
+            .try_collect()
+            .await
+            .map_err(|e| format!("Error collecting tournaments: {}", e))
     }
 
     async fn update(&self, tournament: &Tournament) -> Result<(), String> {

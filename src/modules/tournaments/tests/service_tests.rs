@@ -4,7 +4,7 @@ use crate::modules::tournaments::{
     model::{
         CreateInviteDto, CreateTournamentDto, JoinTournamentDto, Match, OpponentDto, Round,
         Tournament, TournamentInvite, TournamentOpponent, TournamentStatus, TournamentUser,
-        UserDto, VoterId, VoteMatchDto,
+        UpdateTournamentDto, UserDto, VoterId, VoteMatchDto,
     },
     repository::{InviteRepository, TournamentRepository},
     service::{TournamentService, TournamentServiceImpl},
@@ -23,6 +23,7 @@ mock! {
         async fn create(&self, tournament: Tournament) -> Result<(), String>;
         async fn update(&self, tournament: &Tournament) -> Result<(), String>;
         async fn find_by_id(&self, id: &ObjectId) -> Result<Option<Tournament>, String>;
+        async fn find_by_creator(&self, user_id: &ObjectId, cursor: Option<ObjectId>, limit: i64) -> Result<Vec<Tournament>, String>;
         async fn delete(&self, id: &ObjectId) -> Result<(), String>;
     }
 }
@@ -103,7 +104,7 @@ fn create_test_tournament() -> Tournament {
         automatic_winners: vec![],
     };
 
-    Tournament::new(dto.name, dto.opponents, dto.users, initial_round)
+    Tournament::new(dto.name, ObjectId::new(), dto.opponents, dto.users, initial_round)
 }
 
 #[tokio::test]
@@ -114,7 +115,7 @@ async fn test_create_tournament_success() {
     let service = create_service_basic(mock_repo);
     let dto = create_test_tournament_dto();
 
-    let result = service.create_tournament(dto).await;
+    let result = service.create_tournament(dto, ObjectId::new()).await;
 
     assert!(result.is_ok());
     let tournament = result.unwrap();
@@ -132,7 +133,7 @@ async fn test_create_tournament_invalid_name() {
     let mut dto = create_test_tournament_dto();
     dto.name = "".to_string();
 
-    let result = service.create_tournament(dto).await;
+    let result = service.create_tournament(dto, ObjectId::new()).await;
 
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), "Tournament name cannot be empty");
@@ -148,7 +149,7 @@ async fn test_create_tournament_insufficient_opponents() {
         url: "https://example.com/1.jpg".to_string(),
     }];
 
-    let result = service.create_tournament(dto).await;
+    let result = service.create_tournament(dto, ObjectId::new()).await;
 
     assert!(result.is_err());
     assert_eq!(
@@ -617,6 +618,346 @@ async fn test_join_tournament_empty_display_name() {
 
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), "Display name cannot be empty");
+}
+
+// --- CRUD tests ---
+
+#[tokio::test]
+async fn test_find_by_id_success() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+
+    let service = create_service_basic(mock_repo);
+    let result = service.find_by_id(&tournament_id).await;
+
+    assert!(result.is_ok());
+    let found = result.unwrap();
+    assert!(found.is_some());
+    assert_eq!(found.unwrap().name, "Test Tournament");
+}
+
+#[tokio::test]
+async fn test_find_by_id_not_found() {
+    let mut mock_repo = MockTournamentRepo::new();
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(|_| Ok(None));
+
+    let service = create_service_basic(mock_repo);
+    let result = service.find_by_id(&ObjectId::new()).await;
+
+    assert!(result.is_ok());
+    assert!(result.unwrap().is_none());
+}
+
+#[tokio::test]
+async fn test_update_tournament_success() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let owner_id = ObjectId::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+    tournament.created_by = owner_id;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+
+    mock_repo.expect_update().times(1).returning(|_| Ok(()));
+
+    let service = create_service_basic(mock_repo);
+    let dto = UpdateTournamentDto {
+        name: Some("Updated Name".to_string()),
+    };
+
+    let result = service.update_tournament(&tournament_id, dto, &owner_id).await;
+
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap().name, "Updated Name");
+}
+
+#[tokio::test]
+async fn test_update_tournament_not_owner() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let owner_id = ObjectId::new();
+    let other_user = ObjectId::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+    tournament.created_by = owner_id;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+
+    let service = create_service_basic(mock_repo);
+    let dto = UpdateTournamentDto {
+        name: Some("Updated Name".to_string()),
+    };
+
+    let result = service.update_tournament(&tournament_id, dto, &other_user).await;
+
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "You can only update your own tournaments");
+}
+
+#[tokio::test]
+async fn test_update_tournament_empty_name() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let owner_id = ObjectId::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+    tournament.created_by = owner_id;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+
+    let service = create_service_basic(mock_repo);
+    let dto = UpdateTournamentDto {
+        name: Some("  ".to_string()),
+    };
+
+    let result = service.update_tournament(&tournament_id, dto, &owner_id).await;
+
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "Tournament name cannot be empty");
+}
+
+#[tokio::test]
+async fn test_delete_tournament_success() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let owner_id = ObjectId::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+    tournament.created_by = owner_id;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+
+    mock_repo.expect_delete().times(1).returning(|_| Ok(()));
+
+    let service = create_service_basic(mock_repo);
+    let result = service.delete_tournament(&tournament_id, &owner_id).await;
+
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_delete_tournament_not_owner() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let owner_id = ObjectId::new();
+    let other_user = ObjectId::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+    tournament.created_by = owner_id;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+
+    let service = create_service_basic(mock_repo);
+    let result = service.delete_tournament(&tournament_id, &other_user).await;
+
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "You can only delete your own tournaments");
+}
+
+#[tokio::test]
+async fn test_pause_tournament_success() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let owner_id = ObjectId::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+    tournament.created_by = owner_id;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+
+    mock_repo.expect_update().times(1).returning(|_| Ok(()));
+
+    let service = create_service_basic(mock_repo);
+    let result = service.pause_tournament(&tournament_id, &owner_id).await;
+
+    assert!(result.is_ok());
+    assert!(matches!(result.unwrap().status, TournamentStatus::Paused));
+}
+
+#[tokio::test]
+async fn test_pause_tournament_not_owner() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let owner_id = ObjectId::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+    tournament.created_by = owner_id;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+
+    let service = create_service_basic(mock_repo);
+    let result = service.pause_tournament(&tournament_id, &ObjectId::new()).await;
+
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "You can only pause your own tournaments");
+}
+
+#[tokio::test]
+async fn test_pause_tournament_not_active() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let owner_id = ObjectId::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+    tournament.created_by = owner_id;
+    tournament.status = TournamentStatus::Completed;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+
+    let service = create_service_basic(mock_repo);
+    let result = service.pause_tournament(&tournament_id, &owner_id).await;
+
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "Tournament is not active");
+}
+
+#[tokio::test]
+async fn test_resume_tournament_success() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let owner_id = ObjectId::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+    tournament.created_by = owner_id;
+    tournament.status = TournamentStatus::Paused;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+
+    mock_repo.expect_update().times(1).returning(|_| Ok(()));
+
+    let service = create_service_basic(mock_repo);
+    let result = service.resume_tournament(&tournament_id, &owner_id).await;
+
+    assert!(result.is_ok());
+    assert!(matches!(result.unwrap().status, TournamentStatus::Active));
+}
+
+#[tokio::test]
+async fn test_resume_tournament_not_paused() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let owner_id = ObjectId::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+    tournament.created_by = owner_id;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+
+    let service = create_service_basic(mock_repo);
+    let result = service.resume_tournament(&tournament_id, &owner_id).await;
+
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "Tournament is not paused");
+}
+
+#[tokio::test]
+async fn test_get_match_detail_success() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+    let match_id = tournament.rounds[0].matches[0].match_id.clone();
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+
+    let service = create_service_basic(mock_repo);
+    let result = service.get_match_detail(&tournament_id, &match_id).await;
+
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap().match_id, "test_match");
+}
+
+#[tokio::test]
+async fn test_get_match_detail_not_found() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+
+    let service = create_service_basic(mock_repo);
+    let result = service
+        .get_match_detail(&tournament_id, "nonexistent_match")
+        .await;
+
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "Match not found");
+}
+
+#[tokio::test]
+async fn test_find_by_creator_success() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let owner_id = ObjectId::new();
+    let mut t1 = create_test_tournament();
+    t1.id = Some(ObjectId::new());
+    t1.created_by = owner_id;
+    let mut t2 = create_test_tournament();
+    t2.id = Some(ObjectId::new());
+    t2.created_by = owner_id;
+
+    mock_repo
+        .expect_find_by_creator()
+        .times(1)
+        .returning(move |_, _, _| Ok(vec![t1.clone(), t2.clone()]));
+
+    let service = create_service_basic(mock_repo);
+    let params = crate::common::pagination::PaginationParams {
+        cursor: None,
+        limit: None,
+    };
+    let result = service.find_by_creator(&owner_id, params).await;
+
+    assert!(result.is_ok());
+    let response = result.unwrap();
+    assert_eq!(response.data.len(), 2);
 }
 
 // --- Integration tests (require MongoDB) ---

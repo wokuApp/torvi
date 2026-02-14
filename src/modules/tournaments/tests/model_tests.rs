@@ -104,8 +104,10 @@ fn test_tournament_new() {
     };
 
     // Act
+    let created_by = ObjectId::new();
     let tournament = Tournament::new(
         name.clone(),
+        created_by,
         opponents.clone(),
         users.clone(),
         initial_round,
@@ -140,7 +142,7 @@ fn test_tournament_response_from_tournament() {
         matches: vec![create_test_match()],
         automatic_winners: vec![],
     };
-    let mut tournament = Tournament::new(name.clone(), opponents, users, initial_round);
+    let mut tournament = Tournament::new(name.clone(), ObjectId::new(), opponents, users, initial_round);
     tournament.id = Some(tournament_id);
 
     // Act

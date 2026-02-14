@@ -66,6 +66,7 @@ pub struct Tournament {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
     pub name: String,
+    pub created_by: ObjectId,
     pub opponents: Vec<TournamentOpponent>,
     pub users: Vec<TournamentUser>,
     pub rounds: Vec<Round>,
@@ -78,6 +79,7 @@ pub struct Tournament {
 impl Tournament {
     pub fn new(
         name: String,
+        created_by: ObjectId,
         opponents: Vec<OpponentDto>,
         users: Vec<UserDto>,
         initial_round: Round,
@@ -86,6 +88,7 @@ impl Tournament {
         Self {
             id: None,
             name,
+            created_by,
             opponents: opponents
                 .into_iter()
                 .map(|o| TournamentOpponent {
@@ -132,6 +135,7 @@ pub struct UserDto {
 pub struct TournamentResponse {
     pub id: ObjectId,
     pub name: String,
+    pub created_by: ObjectId,
     pub opponents: Vec<TournamentOpponent>,
     pub users: Vec<TournamentUser>,
     pub rounds: Vec<Round>,
@@ -146,6 +150,7 @@ impl From<Tournament> for TournamentResponse {
         Self {
             id: tournament.id.unwrap(),
             name: tournament.name,
+            created_by: tournament.created_by,
             opponents: tournament.opponents,
             users: tournament.users,
             rounds: tournament.rounds,
@@ -155,6 +160,11 @@ impl From<Tournament> for TournamentResponse {
             updated_at: tournament.updated_at,
         }
     }
+}
+
+#[derive(Debug, Deserialize)]
+pub struct UpdateTournamentDto {
+    pub name: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
