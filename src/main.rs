@@ -14,6 +14,7 @@ fn rocket() -> _ {
 
     rocket::build()
         .attach(config::security::init())
+        .attach(config::cors::init())
         .attach(config::database::init())
         .attach(config::s3::init())
         .attach(config::jwt::init())
