@@ -1,4 +1,5 @@
 use mongodb::bson::oid::ObjectId;
+use std::collections::HashMap;
 use std::sync::Arc;
 
 use crate::modules::websocket::broadcaster::TournamentBroadcaster;
@@ -130,4 +131,76 @@ fn test_room_count_multiple_tournaments() {
     let _rx3 = broadcaster.subscribe(&ObjectId::new());
 
     assert_eq!(broadcaster.room_count(), 3);
+}
+
+#[test]
+fn test_cleanup_on_empty_broadcaster() {
+    let broadcaster = TournamentBroadcaster::new();
+    broadcaster.cleanup(); // should not panic
+    assert_eq!(broadcaster.room_count(), 0);
+}
+
+#[test]
+fn test_broadcast_after_all_receivers_dropped() {
+    let broadcaster = TournamentBroadcaster::new();
+    let tid = ObjectId::new();
+    let rx = broadcaster.subscribe(&tid);
+    drop(rx);
+
+    // Should not panic even though no receivers
+    broadcaster.broadcast(&tid, TournamentEvent::TournamentPaused);
+}
+
+#[test]
+fn test_subscriber_receives_events_in_order() {
+    let broadcaster = TournamentBroadcaster::new();
+    let tid = ObjectId::new();
+    let mut rx = broadcaster.subscribe(&tid);
+
+    broadcaster.broadcast(&tid, TournamentEvent::TournamentPaused);
+    broadcaster.broadcast(&tid, TournamentEvent::TournamentResumed);
+    broadcaster.broadcast(
+        &tid,
+        TournamentEvent::VoteCast {
+            match_id: "m1".to_string(),
+            vote_counts: HashMap::new(),
+            total_needed: 3,
+        },
+    );
+
+    assert_eq!(rx.try_recv().unwrap(), TournamentEvent::TournamentPaused);
+    assert_eq!(rx.try_recv().unwrap(), TournamentEvent::TournamentResumed);
+    assert!(matches!(
+        rx.try_recv().unwrap(),
+        TournamentEvent::VoteCast { .. }
+    ));
+}
+
+#[tokio::test]
+async fn test_concurrent_subscribe_and_broadcast() {
+    let broadcaster = Arc::new(TournamentBroadcaster::new());
+    let tid = ObjectId::new();
+
+    let mut handles = vec![];
+    for _ in 0..10 {
+        let b = Arc::clone(&broadcaster);
+        let t = tid;
+        handles.push(tokio::spawn(async move {
+            let mut rx = b.subscribe(&t);
+            b.broadcast(&t, TournamentEvent::TournamentPaused);
+            // Try to receive at least one event
+            let _ = tokio::time::timeout(
+                tokio::time::Duration::from_millis(100),
+                rx.recv(),
+            )
+            .await;
+        }));
+    }
+
+    for handle in handles {
+        handle.await.unwrap();
+    }
+
+    // No deadlock occurred
+    assert!(broadcaster.room_count() > 0);
 }

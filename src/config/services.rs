@@ -66,6 +66,7 @@ pub fn init() -> AdHoc {
             .manage(tournament_service as Arc<dyn TournamentService + Send + Sync>)
             .manage(opponent_service as Arc<dyn OpponentService + Send + Sync>)
             .manage(image_service as Arc<dyn ImageService + Send + Sync>)
+            .attach(TournamentBroadcaster::cleanup_fairing(Arc::clone(&broadcaster)))
             .manage(broadcaster)
     })
 }
