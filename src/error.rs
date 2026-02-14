@@ -19,6 +19,9 @@ pub enum Error {
     #[error("Unauthorized: {0}")]
     Unauthorized(String),
 
+    #[error("Forbidden: {0}")]
+    Forbidden(String),
+
     #[error("Not found: {0}")]
     NotFound(String),
 
@@ -37,6 +40,7 @@ impl Error {
         match self {
             Error::BadRequest(_) | Error::ValidationError(_) => Status::BadRequest,
             Error::Unauthorized(_) => Status::Unauthorized,
+            Error::Forbidden(_) => Status::Forbidden,
             Error::NotFound(_) => Status::NotFound,
             Error::DatabaseError(_) | Error::Internal(_) => Status::InternalServerError,
         }
@@ -74,6 +78,12 @@ mod tests {
     fn test_unauthorized_status() {
         let error = Error::Unauthorized("invalid token".to_string());
         assert_eq!(error.status(), Status::Unauthorized);
+    }
+
+    #[test]
+    fn test_forbidden_status() {
+        let error = Error::Forbidden("not allowed".to_string());
+        assert_eq!(error.status(), Status::Forbidden);
     }
 
     #[test]
