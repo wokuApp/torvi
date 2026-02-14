@@ -10,6 +10,7 @@ use crate::modules::tournaments::{
     service::{TournamentService, TournamentServiceImpl},
 };
 use crate::modules::websocket::broadcaster::TournamentBroadcaster;
+use crate::modules::websocket::model::TournamentEvent;
 use async_trait::async_trait;
 use mockall::mock;
 use mongodb::bson::{oid::ObjectId, DateTime};
@@ -69,6 +70,21 @@ fn create_service(
         Arc::new(auth),
         create_broadcaster(),
     )
+}
+
+fn create_service_with_broadcaster(
+    repo: MockTournamentRepo,
+    invite_repo: MockInviteRepo,
+    auth: MockAuth,
+) -> (TournamentServiceImpl, Arc<TournamentBroadcaster>) {
+    let broadcaster = create_broadcaster();
+    let service = TournamentServiceImpl::new(
+        Arc::new(repo),
+        Arc::new(invite_repo),
+        Arc::new(auth),
+        Arc::clone(&broadcaster),
+    );
+    (service, broadcaster)
 }
 
 fn create_service_basic(repo: MockTournamentRepo) -> TournamentServiceImpl {
@@ -964,6 +980,368 @@ async fn test_find_by_creator_success() {
     assert!(result.is_ok());
     let response = result.unwrap();
     assert_eq!(response.data.len(), 2);
+}
+
+// --- Broadcast tests ---
+
+#[tokio::test]
+async fn test_vote_cast_broadcasts_event() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+
+    // Add a second user so vote doesn't complete the match
+    tournament.users.push(TournamentUser {
+        voter_id: VoterId::Registered(ObjectId::new()),
+        name: "User 2".to_string(),
+    });
+
+    let match_id = tournament.rounds[0].matches[0].match_id.clone();
+    let voter_id = tournament.users[0].voter_id.clone();
+    let opponent1 = tournament.rounds[0].matches[0].opponent1;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+    mock_repo.expect_update().times(1).returning(|_| Ok(()));
+
+    let (service, broadcaster) =
+        create_service_with_broadcaster(mock_repo, MockInviteRepo::new(), MockAuth::new());
+    let mut rx = broadcaster.subscribe(&tournament_id);
+
+    let vote_dto = VoteMatchDto {
+        tournament_id,
+        match_id: match_id.clone(),
+        voted_for: opponent1,
+    };
+    service.vote_match(vote_dto, voter_id).await.unwrap();
+
+    let event = rx.try_recv().unwrap();
+    match event {
+        TournamentEvent::VoteCast {
+            match_id: mid,
+            total_needed,
+            ..
+        } => {
+            assert_eq!(mid, match_id);
+            assert_eq!(total_needed, 2);
+        }
+        other => panic!("Expected VoteCast, got {:?}", other),
+    }
+}
+
+#[tokio::test]
+async fn test_vote_completing_match_broadcasts_match_completed() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+
+    let match_id = tournament.rounds[0].matches[0].match_id.clone();
+    let voter_id = tournament.users[0].voter_id.clone();
+    let opponent1 = tournament.rounds[0].matches[0].opponent1;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+    mock_repo.expect_update().times(1).returning(|_| Ok(()));
+
+    let (service, broadcaster) =
+        create_service_with_broadcaster(mock_repo, MockInviteRepo::new(), MockAuth::new());
+    let mut rx = broadcaster.subscribe(&tournament_id);
+
+    let vote_dto = VoteMatchDto {
+        tournament_id,
+        match_id: match_id.clone(),
+        voted_for: opponent1,
+    };
+    service.vote_match(vote_dto, voter_id).await.unwrap();
+
+    // First event: VoteCast
+    let _ = rx.try_recv().unwrap();
+    // Second event: MatchCompleted
+    let event = rx.try_recv().unwrap();
+    match event {
+        TournamentEvent::MatchCompleted {
+            match_id: mid,
+            winner_id,
+            ..
+        } => {
+            assert_eq!(mid, match_id);
+            assert_eq!(winner_id, opponent1);
+        }
+        other => panic!("Expected MatchCompleted, got {:?}", other),
+    }
+}
+
+#[tokio::test]
+async fn test_vote_completing_tournament_broadcasts_all_events() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+
+    let match_id = tournament.rounds[0].matches[0].match_id.clone();
+    let voter_id = tournament.users[0].voter_id.clone();
+    let opponent1 = tournament.rounds[0].matches[0].opponent1;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+    mock_repo.expect_update().times(1).returning(|_| Ok(()));
+
+    let (service, broadcaster) =
+        create_service_with_broadcaster(mock_repo, MockInviteRepo::new(), MockAuth::new());
+    let mut rx = broadcaster.subscribe(&tournament_id);
+
+    let vote_dto = VoteMatchDto {
+        tournament_id,
+        match_id,
+        voted_for: opponent1,
+    };
+    service.vote_match(vote_dto, voter_id).await.unwrap();
+
+    // VoteCast
+    assert!(matches!(rx.try_recv().unwrap(), TournamentEvent::VoteCast { .. }));
+    // MatchCompleted
+    assert!(matches!(rx.try_recv().unwrap(), TournamentEvent::MatchCompleted { .. }));
+    // RoundCompleted
+    match rx.try_recv().unwrap() {
+        TournamentEvent::RoundCompleted {
+            round_number,
+            next_round_matches,
+        } => {
+            assert_eq!(round_number, 1);
+            assert_eq!(next_round_matches, 0);
+        }
+        other => panic!("Expected RoundCompleted, got {:?}", other),
+    }
+    // TournamentCompleted
+    match rx.try_recv().unwrap() {
+        TournamentEvent::TournamentCompleted { winner_id } => {
+            assert_eq!(winner_id, opponent1);
+        }
+        other => panic!("Expected TournamentCompleted, got {:?}", other),
+    }
+}
+
+#[tokio::test]
+async fn test_vote_completing_round_broadcasts_round_completed() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let mut tournament = create_test_tournament();
+    tournament.id = Some(ObjectId::new());
+    let tournament_id = tournament.id.unwrap();
+
+    // Add extra opponents + match so tournament continues after round
+    let opponent3_id = ObjectId::new();
+    let opponent4_id = ObjectId::new();
+    tournament.opponents.push(TournamentOpponent {
+        opponent_id: opponent3_id,
+        url: "https://example.com/3.jpg".to_string(),
+    });
+    tournament.opponents.push(TournamentOpponent {
+        opponent_id: opponent4_id,
+        url: "https://example.com/4.jpg".to_string(),
+    });
+    // Add a second match with a pre-determined winner
+    tournament.rounds[0].matches.push(Match {
+        match_id: "match2".to_string(),
+        opponent1: opponent3_id,
+        opponent2: opponent4_id,
+        votes: HashMap::new(),
+        winner: Some(opponent3_id), // Already completed
+        match_date: DateTime::now(),
+    });
+
+    let match_id = tournament.rounds[0].matches[0].match_id.clone();
+    let voter_id = tournament.users[0].voter_id.clone();
+    let opponent1 = tournament.rounds[0].matches[0].opponent1;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+    mock_repo.expect_update().times(1).returning(|_| Ok(()));
+
+    let (service, broadcaster) =
+        create_service_with_broadcaster(mock_repo, MockInviteRepo::new(), MockAuth::new());
+    let mut rx = broadcaster.subscribe(&tournament_id);
+
+    let vote_dto = VoteMatchDto {
+        tournament_id,
+        match_id,
+        voted_for: opponent1,
+    };
+    service.vote_match(vote_dto, voter_id).await.unwrap();
+
+    // VoteCast
+    assert!(matches!(rx.try_recv().unwrap(), TournamentEvent::VoteCast { .. }));
+    // MatchCompleted
+    assert!(matches!(rx.try_recv().unwrap(), TournamentEvent::MatchCompleted { .. }));
+    // RoundCompleted with next_round_matches > 0
+    match rx.try_recv().unwrap() {
+        TournamentEvent::RoundCompleted {
+            round_number,
+            next_round_matches,
+        } => {
+            assert_eq!(round_number, 1);
+            assert_eq!(next_round_matches, 1);
+        }
+        other => panic!("Expected RoundCompleted, got {:?}", other),
+    }
+    // No TournamentCompleted since there are still matches
+    assert!(rx.try_recv().is_err());
+}
+
+#[tokio::test]
+async fn test_join_broadcasts_participant_joined() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+    mock_repo.expect_update().times(1).returning(|_| Ok(()));
+
+    let invite_id = ObjectId::new();
+    let mut mock_invite = MockInviteRepo::new();
+    mock_invite
+        .expect_find_by_code()
+        .times(1)
+        .returning(move |_| {
+            Ok(Some(TournamentInvite {
+                id: Some(invite_id),
+                code: "ABC12345".to_string(),
+                tournament_id,
+                max_uses: 10,
+                current_uses: 0,
+                expires_at: DateTime::from_millis(
+                    (chrono::Utc::now().timestamp() + 86400) * 1000,
+                ),
+                created_by: ObjectId::new(),
+                created_at: DateTime::now(),
+            }))
+        });
+    mock_invite
+        .expect_increment_uses()
+        .times(1)
+        .returning(|_| Ok(()));
+
+    let mut mock_auth = MockAuth::new();
+    mock_auth
+        .expect_generate_anonymous_token()
+        .times(1)
+        .returning(|_tid, name| {
+            Ok(AnonymousTokenResponse {
+                access_token: "token".to_string(),
+                token_type: "Bearer".to_string(),
+                session_id: "session-123".to_string(),
+                display_name: name.to_string(),
+            })
+        });
+
+    let (service, broadcaster) =
+        create_service_with_broadcaster(mock_repo, mock_invite, mock_auth);
+    let mut rx = broadcaster.subscribe(&tournament_id);
+
+    let dto = JoinTournamentDto {
+        invite_code: "ABC12345".to_string(),
+        display_name: "New Player".to_string(),
+    };
+    service.join_tournament(&tournament_id, dto).await.unwrap();
+
+    match rx.try_recv().unwrap() {
+        TournamentEvent::ParticipantJoined {
+            display_name,
+            participant_count,
+        } => {
+            assert_eq!(display_name, "New Player");
+            assert_eq!(participant_count, 2); // original user + new
+        }
+        other => panic!("Expected ParticipantJoined, got {:?}", other),
+    }
+}
+
+#[tokio::test]
+async fn test_pause_broadcasts_paused() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let owner_id = ObjectId::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+    tournament.created_by = owner_id;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+    mock_repo.expect_update().times(1).returning(|_| Ok(()));
+
+    let (service, broadcaster) =
+        create_service_with_broadcaster(mock_repo, MockInviteRepo::new(), MockAuth::new());
+    let mut rx = broadcaster.subscribe(&tournament_id);
+
+    service.pause_tournament(&tournament_id, &owner_id).await.unwrap();
+
+    assert_eq!(rx.try_recv().unwrap(), TournamentEvent::TournamentPaused);
+}
+
+#[tokio::test]
+async fn test_resume_broadcasts_resumed() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let owner_id = ObjectId::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+    tournament.created_by = owner_id;
+    tournament.status = TournamentStatus::Paused;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+    mock_repo.expect_update().times(1).returning(|_| Ok(()));
+
+    let (service, broadcaster) =
+        create_service_with_broadcaster(mock_repo, MockInviteRepo::new(), MockAuth::new());
+    let mut rx = broadcaster.subscribe(&tournament_id);
+
+    service.resume_tournament(&tournament_id, &owner_id).await.unwrap();
+
+    assert_eq!(rx.try_recv().unwrap(), TournamentEvent::TournamentResumed);
+}
+
+#[tokio::test]
+async fn test_no_broadcast_on_error() {
+    let mut mock_repo = MockTournamentRepo::new();
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(|_| Ok(None));
+
+    let tournament_id = ObjectId::new();
+    let (service, broadcaster) =
+        create_service_with_broadcaster(mock_repo, MockInviteRepo::new(), MockAuth::new());
+    let mut rx = broadcaster.subscribe(&tournament_id);
+
+    let vote_dto = VoteMatchDto {
+        tournament_id,
+        match_id: "nonexistent".to_string(),
+        voted_for: ObjectId::new(),
+    };
+    let result = service
+        .vote_match(vote_dto, VoterId::Registered(ObjectId::new()))
+        .await;
+
+    assert!(result.is_err());
+    assert!(rx.try_recv().is_err());
 }
 
 // --- Integration tests (require MongoDB) ---

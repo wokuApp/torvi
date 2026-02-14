@@ -8,6 +8,7 @@ use crate::modules::tournaments::model::{
 };
 use crate::modules::tournaments::repository::{InviteRepository, TournamentRepository};
 use crate::modules::websocket::broadcaster::TournamentBroadcaster;
+use crate::modules::websocket::model::TournamentEvent;
 use async_trait::async_trait;
 use chrono::Utc;
 use mongodb::bson::{oid::ObjectId, DateTime};
@@ -288,6 +289,8 @@ impl TournamentService for TournamentServiceImpl {
         tournament.updated_at = DateTime::now();
         self.tournament_repository.update(&tournament).await?;
 
+        self.broadcaster.broadcast(id, TournamentEvent::TournamentPaused);
+
         Ok(tournament)
     }
 
@@ -313,6 +316,8 @@ impl TournamentService for TournamentServiceImpl {
         tournament.status = TournamentStatus::Active;
         tournament.updated_at = DateTime::now();
         self.tournament_repository.update(&tournament).await?;
+
+        self.broadcaster.broadcast(id, TournamentEvent::TournamentResumed);
 
         Ok(tournament)
     }
@@ -369,19 +374,83 @@ impl TournamentService for TournamentServiceImpl {
             current_match.process_vote(voter_id, vote_dto.voted_for, &tournament.users)?
         };
 
-        if let Some(_) = match_winner {
+        // Broadcast vote_cast event
+        let voted_match = tournament.rounds[current_round_index]
+            .matches
+            .iter()
+            .find(|m| m.match_id == vote_dto.match_id)
+            .unwrap();
+        let vote_counts: HashMap<String, usize> = voted_match
+            .votes
+            .iter()
+            .map(|(k, v)| (k.clone(), v.len()))
+            .collect();
+        self.broadcaster.broadcast(
+            &vote_dto.tournament_id,
+            TournamentEvent::VoteCast {
+                match_id: vote_dto.match_id.clone(),
+                vote_counts,
+                total_needed: tournament.users.len(),
+            },
+        );
+
+        if let Some(winner_id) = match_winner {
+            // Broadcast match_completed
+            let completed_match = tournament.rounds[current_round_index]
+                .matches
+                .iter()
+                .find(|m| m.match_id == vote_dto.match_id)
+                .unwrap();
+            let final_votes: HashMap<String, usize> = completed_match
+                .votes
+                .iter()
+                .map(|(k, v)| (k.clone(), v.len()))
+                .collect();
+            self.broadcaster.broadcast(
+                &vote_dto.tournament_id,
+                TournamentEvent::MatchCompleted {
+                    match_id: vote_dto.match_id.clone(),
+                    winner_id,
+                    final_votes,
+                },
+            );
+
             let current_round = &tournament.rounds[current_round_index];
 
             if self.is_round_complete(current_round) {
                 let winners = self.get_round_winners(current_round);
+                let round_number = current_round.round_number;
 
                 if winners.len() == 1 {
                     tournament.status = TournamentStatus::Completed;
                     tournament.winner = Some(winners[0]);
+
+                    self.broadcaster.broadcast(
+                        &vote_dto.tournament_id,
+                        TournamentEvent::RoundCompleted {
+                            round_number,
+                            next_round_matches: 0,
+                        },
+                    );
+                    self.broadcaster.broadcast(
+                        &vote_dto.tournament_id,
+                        TournamentEvent::TournamentCompleted {
+                            winner_id: winners[0],
+                        },
+                    );
                 } else {
                     let next_round =
-                        self.create_next_round(winners, current_round.round_number + 1);
+                        self.create_next_round(winners, round_number + 1);
+                    let next_matches = next_round.matches.len();
                     tournament.rounds.push(next_round);
+
+                    self.broadcaster.broadcast(
+                        &vote_dto.tournament_id,
+                        TournamentEvent::RoundCompleted {
+                            round_number,
+                            next_round_matches: next_matches,
+                        },
+                    );
                 }
 
                 tournament.updated_at = DateTime::now();
@@ -502,6 +571,14 @@ impl TournamentService for TournamentServiceImpl {
             .increment_uses(&invite.id.ok_or("Invite must have an id")?)
             .await
             .map_err(|e| format!("Error incrementing invite uses: {}", e))?;
+
+        self.broadcaster.broadcast(
+            tournament_id,
+            TournamentEvent::ParticipantJoined {
+                display_name: dto.display_name.clone(),
+                participant_count: tournament.users.len(),
+            },
+        );
 
         Ok(JoinTournamentResponse {
             access_token: token_response.access_token,
