@@ -49,6 +49,30 @@ pub struct JwtClaims {
     pub token_type: String,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct AnonymousClaims {
+    pub sub: String,
+    pub tournament_id: String,
+    pub display_name: String,
+    pub exp: usize,
+    pub iat: usize,
+    pub token_type: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct AnonymousTokenRequest {
+    pub tournament_id: ObjectId,
+    pub display_name: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct AnonymousTokenResponse {
+    pub access_token: String,
+    pub token_type: String,
+    pub session_id: String,
+    pub display_name: String,
+}
+
 #[derive(Debug, Deserialize)]
 pub struct RefreshRequest {
     pub refresh_token: String,

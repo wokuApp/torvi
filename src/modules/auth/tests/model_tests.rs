@@ -2,8 +2,8 @@ use mongodb::bson::{oid::ObjectId, DateTime};
 use serde_json;
 
 use crate::modules::auth::model::{
-    AuthUserResponse, JwtClaims, LoginDto, LoginResponse, RefreshRequest, RefreshResponse,
-    RegisterDto,
+    AnonymousClaims, AnonymousTokenRequest, AnonymousTokenResponse, AuthUserResponse, JwtClaims,
+    LoginDto, LoginResponse, RefreshRequest, RefreshResponse, RegisterDto,
 };
 use crate::modules::users::model::User;
 
@@ -124,4 +124,50 @@ fn test_register_dto_deserialization() {
     assert_eq!(dto.email, "new@example.com");
     assert_eq!(dto.name, "New User");
     assert_eq!(dto.password, "password123");
+}
+
+#[test]
+fn test_anonymous_claims_serialization() {
+    let claims = AnonymousClaims {
+        sub: "session-uuid-123".to_string(),
+        tournament_id: ObjectId::new().to_string(),
+        display_name: "Player 1".to_string(),
+        exp: 9999999999,
+        iat: 1000000,
+        token_type: "anonymous".to_string(),
+    };
+    let json = serde_json::to_string(&claims).unwrap();
+    let deserialized: AnonymousClaims = serde_json::from_str(&json).unwrap();
+    assert_eq!(deserialized.sub, "session-uuid-123");
+    assert_eq!(deserialized.display_name, "Player 1");
+    assert_eq!(deserialized.token_type, "anonymous");
+}
+
+#[test]
+fn test_anonymous_token_request_deserialization() {
+    let tournament_id = ObjectId::new();
+    let json = format!(
+        r#"{{
+            "tournament_id": "{}",
+            "display_name": "Player 1"
+        }}"#,
+        tournament_id
+    );
+    let request: AnonymousTokenRequest = serde_json::from_str(&json).unwrap();
+    assert_eq!(request.tournament_id, tournament_id);
+    assert_eq!(request.display_name, "Player 1");
+}
+
+#[test]
+fn test_anonymous_token_response_serialization() {
+    let response = AnonymousTokenResponse {
+        access_token: "test_anon_token".to_string(),
+        token_type: "Bearer".to_string(),
+        session_id: "session-uuid-123".to_string(),
+        display_name: "Player 1".to_string(),
+    };
+    let json = serde_json::to_string(&response).unwrap();
+    assert!(json.contains("test_anon_token"));
+    assert!(json.contains("session-uuid-123"));
+    assert!(json.contains("Player 1"));
 }

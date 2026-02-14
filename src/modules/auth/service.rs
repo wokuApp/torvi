@@ -1,12 +1,18 @@
-use crate::modules::auth::model::{AuthUserResponse, JwtClaims, LoginResponse, RefreshResponse};
+use crate::modules::auth::model::{
+    AnonymousClaims, AnonymousTokenResponse, AuthUserResponse, JwtClaims, LoginResponse,
+    RefreshResponse,
+};
 use crate::modules::users::service::UserService;
 use async_trait::async_trait;
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use mongodb::bson::oid::ObjectId;
 use std::sync::Arc;
+use uuid::Uuid;
 
 const ACCESS_TOKEN_DURATION_SECS: i64 = 900; // 15 minutes
 const REFRESH_TOKEN_DURATION_SECS: i64 = 604800; // 7 days
+const ANONYMOUS_TOKEN_DURATION_SECS: i64 = 86400; // 24 hours
 
 pub struct AuthConfig {
     pub jwt_secret: String,
@@ -23,6 +29,12 @@ pub trait AuthService: Send + Sync {
     ) -> Result<LoginResponse, String>;
     fn verify_token(&self, token: &str) -> Result<JwtClaims, String>;
     fn refresh_tokens(&self, refresh_token: &str) -> Result<RefreshResponse, String>;
+    fn generate_anonymous_token(
+        &self,
+        tournament_id: &ObjectId,
+        display_name: &str,
+    ) -> Result<AnonymousTokenResponse, String>;
+    fn verify_anonymous_token(&self, token: &str) -> Result<AnonymousClaims, String>;
 }
 
 pub struct AuthServiceImpl {
@@ -159,6 +171,52 @@ impl AuthService for AuthServiceImpl {
             refresh_token: new_refresh,
             token_type: "Bearer".to_string(),
         })
+    }
+
+    fn generate_anonymous_token(
+        &self,
+        tournament_id: &ObjectId,
+        display_name: &str,
+    ) -> Result<AnonymousTokenResponse, String> {
+        let session_id = Uuid::new_v4().to_string();
+        let now = Utc::now().timestamp() as usize;
+        let claims = AnonymousClaims {
+            sub: session_id.clone(),
+            tournament_id: tournament_id.to_string(),
+            display_name: display_name.to_string(),
+            exp: now + ANONYMOUS_TOKEN_DURATION_SECS as usize,
+            iat: now,
+            token_type: "anonymous".to_string(),
+        };
+
+        let token = encode(
+            &Header::default(),
+            &claims,
+            &EncodingKey::from_secret(self.config.jwt_secret.as_bytes()),
+        )
+        .map_err(|e| format!("Failed to create anonymous token: {}", e))?;
+
+        Ok(AnonymousTokenResponse {
+            access_token: token,
+            token_type: "Bearer".to_string(),
+            session_id,
+            display_name: display_name.to_string(),
+        })
+    }
+
+    fn verify_anonymous_token(&self, token: &str) -> Result<AnonymousClaims, String> {
+        let decoded = decode::<AnonymousClaims>(
+            token,
+            &DecodingKey::from_secret(self.config.jwt_secret.as_bytes()),
+            &Validation::default(),
+        )
+        .map_err(|e| format!("Invalid anonymous token: {}", e))?;
+
+        if decoded.claims.token_type != "anonymous" {
+            return Err("Invalid token type: expected anonymous token".to_string());
+        }
+
+        Ok(decoded.claims)
     }
 }
 
@@ -347,5 +405,77 @@ mod tests {
         let result = service.login("test@test.com", "wrong").await;
         assert!(result.is_err());
         assert!(result.unwrap_err().contains("Invalid credentials"));
+    }
+
+    #[test]
+    fn test_generate_anonymous_token_has_session_id() {
+        let service = AuthServiceImpl::new(
+            Arc::new(MockUserService { user: None }),
+            AuthConfig {
+                jwt_secret: "test_secret_key_for_testing".to_string(),
+            },
+        );
+
+        let tournament_id = ObjectId::new();
+        let result = service.generate_anonymous_token(&tournament_id, "Player 1");
+        assert!(result.is_ok());
+        let response = result.unwrap();
+        assert!(!response.session_id.is_empty());
+        assert!(!response.access_token.is_empty());
+        assert_eq!(response.token_type, "Bearer");
+        assert_eq!(response.display_name, "Player 1");
+    }
+
+    #[test]
+    fn test_verify_anonymous_token_invalid() {
+        let service = AuthServiceImpl::new(
+            Arc::new(MockUserService { user: None }),
+            AuthConfig {
+                jwt_secret: "test_secret_key_for_testing".to_string(),
+            },
+        );
+
+        let result = service.verify_anonymous_token("invalid_token");
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_verify_anonymous_token_roundtrip() {
+        let service = AuthServiceImpl::new(
+            Arc::new(MockUserService { user: None }),
+            AuthConfig {
+                jwt_secret: "test_secret_key_for_testing".to_string(),
+            },
+        );
+
+        let tournament_id = ObjectId::new();
+        let response = service
+            .generate_anonymous_token(&tournament_id, "Player 1")
+            .unwrap();
+
+        let claims = service
+            .verify_anonymous_token(&response.access_token)
+            .unwrap();
+        assert_eq!(claims.sub, response.session_id);
+        assert_eq!(claims.tournament_id, tournament_id.to_string());
+        assert_eq!(claims.display_name, "Player 1");
+        assert_eq!(claims.token_type, "anonymous");
+    }
+
+    #[test]
+    fn test_verify_anonymous_token_rejects_access_token() {
+        let service = AuthServiceImpl::new(
+            Arc::new(MockUserService { user: None }),
+            AuthConfig {
+                jwt_secret: "test_secret_key_for_testing".to_string(),
+            },
+        );
+
+        let access = service
+            .generate_token("user123".to_string(), "test@test.com".to_string())
+            .unwrap();
+
+        let result = service.verify_anonymous_token(&access);
+        assert!(result.is_err());
     }
 }

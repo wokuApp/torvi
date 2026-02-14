@@ -256,3 +256,95 @@ async fn test_register_short_password() {
     assert!(result.is_err());
     assert!(result.unwrap_err().contains("at least 8 characters"));
 }
+
+#[test]
+fn test_generate_anonymous_token() {
+    // Arrange
+    let auth_service = AuthServiceImpl::new(
+        Arc::new(MockUserService::new()),
+        AuthConfig {
+            jwt_secret: "test_secret_key_for_testing".to_string(),
+        },
+    );
+    let tournament_id = ObjectId::new();
+
+    // Act
+    let result = auth_service.generate_anonymous_token(&tournament_id, "Player 1");
+
+    // Assert
+    assert!(result.is_ok());
+    let response = result.unwrap();
+    assert!(!response.access_token.is_empty());
+    assert!(!response.session_id.is_empty());
+    assert_eq!(response.token_type, "Bearer");
+    assert_eq!(response.display_name, "Player 1");
+}
+
+#[test]
+fn test_verify_anonymous_token_success() {
+    // Arrange
+    let auth_service = AuthServiceImpl::new(
+        Arc::new(MockUserService::new()),
+        AuthConfig {
+            jwt_secret: "test_secret_key_for_testing".to_string(),
+        },
+    );
+    let tournament_id = ObjectId::new();
+    let response = auth_service
+        .generate_anonymous_token(&tournament_id, "Player 1")
+        .unwrap();
+
+    // Act
+    let claims = auth_service
+        .verify_anonymous_token(&response.access_token)
+        .unwrap();
+
+    // Assert
+    assert_eq!(claims.sub, response.session_id);
+    assert_eq!(claims.tournament_id, tournament_id.to_string());
+    assert_eq!(claims.display_name, "Player 1");
+    assert_eq!(claims.token_type, "anonymous");
+}
+
+#[test]
+fn test_verify_anonymous_token_rejects_access_token() {
+    // Arrange
+    let auth_service = AuthServiceImpl::new(
+        Arc::new(MockUserService::new()),
+        AuthConfig {
+            jwt_secret: "test_secret_key_for_testing".to_string(),
+        },
+    );
+    let access = auth_service
+        .generate_token("user123".to_string(), "test@test.com".to_string())
+        .unwrap();
+
+    // Act
+    let result = auth_service.verify_anonymous_token(&access);
+
+    // Assert
+    assert!(result.is_err());
+}
+
+#[test]
+fn test_anonymous_token_contains_tournament_id() {
+    // Arrange
+    let auth_service = AuthServiceImpl::new(
+        Arc::new(MockUserService::new()),
+        AuthConfig {
+            jwt_secret: "test_secret_key_for_testing".to_string(),
+        },
+    );
+    let tournament_id = ObjectId::new();
+
+    // Act
+    let response = auth_service
+        .generate_anonymous_token(&tournament_id, "Player 1")
+        .unwrap();
+    let claims = auth_service
+        .verify_anonymous_token(&response.access_token)
+        .unwrap();
+
+    // Assert
+    assert_eq!(claims.tournament_id, tournament_id.to_string());
+}
