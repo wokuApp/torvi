@@ -29,10 +29,13 @@ async fn create_test_rocket() -> Rocket<Build> {
 }
 
 fn create_test_token(user_id: &str, email: &str, secret: &str) -> String {
+    let now = Utc::now().timestamp() as usize;
     let claims = JwtClaims {
         sub: user_id.to_string(),
         email: email.to_string(),
-        exp: (Utc::now().timestamp() + 3600) as usize,
+        exp: now + 3600,
+        iat: now,
+        token_type: "access".to_string(),
     };
     encode(
         &JwtHeader::default(),

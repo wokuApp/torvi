@@ -1,7 +1,10 @@
 use mongodb::bson::{oid::ObjectId, DateTime};
 use serde_json;
 
-use crate::modules::auth::model::{AuthUserResponse, JwtClaims, LoginDto, LoginResponse};
+use crate::modules::auth::model::{
+    AuthUserResponse, JwtClaims, LoginDto, LoginResponse, RefreshRequest, RefreshResponse,
+    RegisterDto,
+};
 use crate::modules::users::model::User;
 
 #[test]
@@ -48,6 +51,7 @@ fn test_login_response_serialization() {
     let user_id = ObjectId::new();
     let login_response = LoginResponse {
         access_token: "test_token".to_string(),
+        refresh_token: "test_refresh".to_string(),
         token_type: "Bearer".to_string(),
         user: AuthUserResponse {
             id: user_id,
@@ -61,6 +65,7 @@ fn test_login_response_serialization() {
 
     // Assert
     assert!(json.contains("test_token"));
+    assert!(json.contains("test_refresh"));
     assert!(json.contains("Bearer"));
     assert!(json.contains("test@example.com"));
     assert!(json.contains("Test User"));
@@ -73,6 +78,8 @@ fn test_jwt_claims_serialization_deserialization() {
         sub: "user123".to_string(),
         email: "test@example.com".to_string(),
         exp: 9999999999,
+        iat: 1000000,
+        token_type: "access".to_string(),
     };
 
     // Act
@@ -83,4 +90,38 @@ fn test_jwt_claims_serialization_deserialization() {
     assert_eq!(deserialized.sub, "user123");
     assert_eq!(deserialized.email, "test@example.com");
     assert_eq!(deserialized.exp, 9999999999);
+    assert_eq!(deserialized.iat, 1000000);
+    assert_eq!(deserialized.token_type, "access");
+}
+
+#[test]
+fn test_refresh_request_deserialization() {
+    let json = r#"{"refresh_token": "some_token"}"#;
+    let request: RefreshRequest = serde_json::from_str(json).unwrap();
+    assert_eq!(request.refresh_token, "some_token");
+}
+
+#[test]
+fn test_refresh_response_serialization() {
+    let response = RefreshResponse {
+        access_token: "new_access".to_string(),
+        refresh_token: "new_refresh".to_string(),
+        token_type: "Bearer".to_string(),
+    };
+    let json = serde_json::to_string(&response).unwrap();
+    assert!(json.contains("new_access"));
+    assert!(json.contains("new_refresh"));
+}
+
+#[test]
+fn test_register_dto_deserialization() {
+    let json = r#"{
+        "email": "new@example.com",
+        "name": "New User",
+        "password": "password123"
+    }"#;
+    let dto: RegisterDto = serde_json::from_str(json).unwrap();
+    assert_eq!(dto.email, "new@example.com");
+    assert_eq!(dto.name, "New User");
+    assert_eq!(dto.password, "password123");
 }

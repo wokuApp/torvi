@@ -11,8 +11,16 @@ pub struct LoginDto {
 #[derive(Debug, Serialize)]
 pub struct LoginResponse {
     pub access_token: String,
+    pub refresh_token: String,
     pub token_type: String,
     pub user: AuthUserResponse,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RegisterDto {
+    pub email: String,
+    pub name: String,
+    pub password: String,
 }
 
 #[derive(Debug, Serialize)]
@@ -37,6 +45,20 @@ pub struct JwtClaims {
     pub sub: String,
     pub email: String,
     pub exp: usize,
+    pub iat: usize,
+    pub token_type: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RefreshRequest {
+    pub refresh_token: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RefreshResponse {
+    pub access_token: String,
+    pub refresh_token: String,
+    pub token_type: String,
 }
 
 #[cfg(test)]
@@ -49,10 +71,14 @@ mod tests {
             sub: "user_id".to_string(),
             email: "test@test.com".to_string(),
             exp: 9999999999,
+            iat: 1000000,
+            token_type: "access".to_string(),
         };
         assert_eq!(claims.sub, "user_id");
         assert_eq!(claims.email, "test@test.com");
         assert!(claims.exp > 0);
+        assert!(claims.iat > 0);
+        assert_eq!(claims.token_type, "access");
     }
 
     #[test]
@@ -75,9 +101,13 @@ mod tests {
             sub: "abc123".to_string(),
             email: "test@test.com".to_string(),
             exp: 1000000,
+            iat: 999000,
+            token_type: "access".to_string(),
         };
         let json = serde_json::to_string(&claims).unwrap();
         assert!(json.contains("abc123"));
         assert!(json.contains("exp"));
+        assert!(json.contains("iat"));
+        assert!(json.contains("token_type"));
     }
 }

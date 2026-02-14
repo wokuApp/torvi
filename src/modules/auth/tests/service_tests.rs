@@ -66,6 +66,7 @@ async fn test_login_success() {
     // Assert
     assert_eq!(result.token_type, "Bearer");
     assert!(!result.access_token.is_empty());
+    assert!(!result.refresh_token.is_empty());
     assert_eq!(result.user.email, test_user.email);
     assert_eq!(result.user.name, test_user.name);
 }
