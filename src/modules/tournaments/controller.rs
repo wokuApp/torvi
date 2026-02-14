@@ -1,20 +1,22 @@
-use mongodb::Database;
-use rocket::{serde::json::Json, State};
+use rocket::serde::json::Json;
+use rocket::State;
 
 use crate::common::guards::AuthenticatedUser;
+use crate::config::database::MongoDB;
 use crate::error::Error;
 use crate::modules::tournaments::{
     model::{CreateTournamentDto, TournamentResponse, VoteMatchDto},
+    repository::TournamentRepositoryImpl,
     service::{TournamentService, TournamentServiceImpl},
 };
 
 #[post("/create", data = "<tournament_dto>")]
 pub async fn create(
     auth: AuthenticatedUser,
-    db: &State<Database>,
+    mongodb: &State<MongoDB>,
     tournament_dto: Json<CreateTournamentDto>,
 ) -> Result<Json<TournamentResponse>, Error> {
-    let repository = Box::new(TournamentRepository::new(db));
+    let repository = Box::new(TournamentRepositoryImpl::new(&mongodb.db));
     let service = TournamentServiceImpl::new(repository);
 
     let tournament = service
@@ -28,10 +30,10 @@ pub async fn create(
 #[post("/match/vote", data = "<vote_dto>")]
 pub async fn vote_match(
     auth: AuthenticatedUser,
-    db: &State<Database>,
+    mongodb: &State<MongoDB>,
     vote_dto: Json<VoteMatchDto>,
 ) -> Result<Json<TournamentResponse>, Error> {
-    let repository = Box::new(TournamentRepository::new(db));
+    let repository = Box::new(TournamentRepositoryImpl::new(&mongodb.db));
     let service = TournamentServiceImpl::new(repository);
 
     let tournament = service

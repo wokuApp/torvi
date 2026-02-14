@@ -41,7 +41,7 @@ pub enum TournamentStatus {
     Completed,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tournament {
     #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
     pub id: Option<ObjectId>,
@@ -96,13 +96,13 @@ pub struct CreateTournamentDto {
     pub users: Vec<UserDto>,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct OpponentDto {
     pub id: ObjectId,
     pub url: String,
 }
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Clone, Deserialize)]
 pub struct UserDto {
     pub id: ObjectId,
     pub name: String,
