@@ -127,6 +127,54 @@ async fn test_create_user_empty_password() {
 }
 
 #[tokio::test]
+async fn test_create_user_short_password() {
+    // Arrange
+    let mock_repo = MockUserRepo::new();
+    let service = UserServiceImpl::new(Box::new(mock_repo));
+
+    // Act
+    let result = service
+        .create_user(
+            "test@example.com".to_string(),
+            "Test User".to_string(),
+            "short".to_string(),
+        )
+        .await;
+
+    // Assert
+    assert!(result.is_err());
+    assert_eq!(
+        result.unwrap_err(),
+        "Password must be at least 8 characters"
+    );
+}
+
+#[tokio::test]
+async fn test_create_user_exactly_8_char_password() {
+    // Arrange
+    let mut mock_repo = MockUserRepo::new();
+    mock_repo
+        .expect_find_by_email()
+        .times(1)
+        .returning(|_| Ok(None));
+    mock_repo.expect_create().times(1).returning(|_| Ok(()));
+
+    let service = UserServiceImpl::new(Box::new(mock_repo));
+
+    // Act
+    let result = service
+        .create_user(
+            "test@example.com".to_string(),
+            "Test User".to_string(),
+            "12345678".to_string(),
+        )
+        .await;
+
+    // Assert
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
 async fn test_find_by_email_found() {
     // Arrange
     let mut mock_repo = MockUserRepo::new();

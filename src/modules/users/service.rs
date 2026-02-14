@@ -42,6 +42,10 @@ impl UserService for UserServiceImpl {
             return Err("Email and password cannot be empty".to_string());
         }
 
+        if password.trim().len() < 8 {
+            return Err("Password must be at least 8 characters".to_string());
+        }
+
         if let Some(_) = self.user_repository.find_by_email(&email).await? {
             return Err("Email already exists".to_string());
         }

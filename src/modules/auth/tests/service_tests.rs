@@ -170,3 +170,88 @@ fn test_generate_token() {
     assert_eq!(claims.sub, user_id);
     assert_eq!(claims.email, email);
 }
+
+#[tokio::test]
+async fn test_register_success() {
+    // Arrange
+    let mut mock_user_service = MockUserService::new();
+    let test_user = create_test_user();
+    let test_user_clone = test_user.clone();
+
+    mock_user_service
+        .expect_create_user()
+        .times(1)
+        .returning(move |_, _, _| Ok(test_user_clone.clone()));
+
+    let auth_service = AuthServiceImpl::new(
+        Box::new(mock_user_service),
+        AuthConfig {
+            jwt_secret: "test_secret_key_for_testing".to_string(),
+        },
+    );
+
+    // Act
+    let result = auth_service
+        .register("new@example.com", "New User", "password123")
+        .await;
+
+    // Assert
+    assert!(result.is_ok());
+    let response = result.unwrap();
+    assert!(!response.access_token.is_empty());
+    assert!(!response.refresh_token.is_empty());
+    assert_eq!(response.token_type, "Bearer");
+    assert_eq!(response.user.email, test_user.email);
+}
+
+#[tokio::test]
+async fn test_register_duplicate_email() {
+    // Arrange
+    let mut mock_user_service = MockUserService::new();
+    mock_user_service
+        .expect_create_user()
+        .times(1)
+        .returning(|_, _, _| Err("Email already exists".to_string()));
+
+    let auth_service = AuthServiceImpl::new(
+        Box::new(mock_user_service),
+        AuthConfig {
+            jwt_secret: "test_secret".to_string(),
+        },
+    );
+
+    // Act
+    let result = auth_service
+        .register("existing@example.com", "User", "password123")
+        .await;
+
+    // Assert
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("Email already exists"));
+}
+
+#[tokio::test]
+async fn test_register_short_password() {
+    // Arrange
+    let mut mock_user_service = MockUserService::new();
+    mock_user_service
+        .expect_create_user()
+        .times(1)
+        .returning(|_, _, _| {
+            Err("Password must be at least 8 characters".to_string())
+        });
+
+    let auth_service = AuthServiceImpl::new(
+        Box::new(mock_user_service),
+        AuthConfig {
+            jwt_secret: "test_secret".to_string(),
+        },
+    );
+
+    // Act
+    let result = auth_service.register("test@example.com", "User", "short").await;
+
+    // Assert
+    assert!(result.is_err());
+    assert!(result.unwrap_err().contains("at least 8 characters"));
+}

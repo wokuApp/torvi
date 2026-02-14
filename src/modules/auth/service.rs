@@ -14,6 +14,12 @@ pub struct AuthConfig {
 #[async_trait]
 pub trait AuthService: Send + Sync {
     async fn login(&self, email: &str, password: &str) -> Result<LoginResponse, String>;
+    async fn register(
+        &self,
+        email: &str,
+        name: &str,
+        password: &str,
+    ) -> Result<LoginResponse, String>;
     fn verify_token(&self, token: &str) -> Result<JwtClaims, String>;
     fn refresh_tokens(&self, refresh_token: &str) -> Result<RefreshResponse, String>;
 }
@@ -74,6 +80,34 @@ impl AuthServiceImpl {
 
 #[async_trait]
 impl AuthService for AuthServiceImpl {
+    async fn register(
+        &self,
+        email: &str,
+        name: &str,
+        password: &str,
+    ) -> Result<LoginResponse, String> {
+        let user = self
+            .user_service
+            .create_user(email.to_string(), name.to_string(), password.to_string())
+            .await?;
+
+        let user_id = user
+            .id
+            .as_ref()
+            .map(|id| id.to_string())
+            .unwrap_or_default();
+
+        let access_token = self.generate_token(user_id.clone(), user.email.clone())?;
+        let refresh_token = self.generate_refresh_token(user_id, user.email.clone())?;
+
+        Ok(LoginResponse {
+            access_token,
+            refresh_token,
+            token_type: "Bearer".to_string(),
+            user: AuthUserResponse::from(user),
+        })
+    }
+
     async fn login(&self, email: &str, password: &str) -> Result<LoginResponse, String> {
         let user = self
             .user_service
