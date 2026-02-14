@@ -1,26 +1,23 @@
 {
-  "name": "@torvi/ui",
+  "name": "torvi-landing",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
-  "main": "./src/index.ts",
-  "types": "./src/index.ts",
-  "exports": {
-    ".": "./src/index.ts"
-  },
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
     "test": "vitest run",
     "test:watch": "vitest"
   },
-  "peerDependencies": {
+  "dependencies": {
+    "@torvi/ui": "*",
+    "motion": "^12.34.0",
+    "next": "^15.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
   },
-  "dependencies": {
-    "@base-ui/react": "^1.0.0",
-    "motion": "^12.34.0"
-  },
   "devDependencies": {
+    "@tailwindcss/postcss": "^4.0.0",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.1.0",
     "@testing-library/user-event": "^14.5.0",
@@ -28,8 +25,7 @@
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^5.1.4",
     "jsdom": "^25.0.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0",
+    "tailwindcss": "^4.0.0",
     "typescript": "^5.7.0",
     "vitest": "^3.0.0"
   }
