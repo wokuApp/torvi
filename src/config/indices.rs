@@ -32,15 +32,25 @@ pub fn init() -> AdHoc {
             .await
             .expect("Failed to create index on tournaments.status+created_at");
 
-        // Index on tournaments.users.user_id
+        // Index on tournaments.created_by
         db.collection::<mongodb::bson::Document>("tournaments")
             .create_index(
                 IndexModel::builder()
-                    .keys(doc! { "users.user_id": 1 })
+                    .keys(doc! { "created_by": 1 })
                     .build(),
             )
             .await
-            .expect("Failed to create index on tournaments.users.user_id");
+            .expect("Failed to create index on tournaments.created_by");
+
+        // Index on tournaments.users.voter_id
+        db.collection::<mongodb::bson::Document>("tournaments")
+            .create_index(
+                IndexModel::builder()
+                    .keys(doc! { "users.voter_id.id": 1 })
+                    .build(),
+            )
+            .await
+            .expect("Failed to create index on tournaments.users.voter_id");
 
         // Index on opponents.created_by
         db.collection::<mongodb::bson::Document>("opponents")
