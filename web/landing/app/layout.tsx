@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import './globals.css'
+import { LanguageProvider } from '@/contexts/LanguageContext'
 
 export const metadata: Metadata = {
   title: 'Torvi - Idea Tournaments',
@@ -15,7 +16,7 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className="min-h-screen bg-white text-gray-900 antialiased">
-        {children}
+        <LanguageProvider>{children}</LanguageProvider>
       </body>
     </html>
   )
