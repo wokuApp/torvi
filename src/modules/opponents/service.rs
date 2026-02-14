@@ -1,19 +1,31 @@
 use crate::error::Error;
 use crate::modules::opponents::model::{CreateOpponentDto, Opponent};
-use mongodb::bson::{doc, oid::ObjectId};
-use mongodb::{Collection, Database};
+use crate::modules::opponents::repository::OpponentRepository;
+use async_trait::async_trait;
+use mongodb::bson::oid::ObjectId;
 
-pub struct OpponentService {
-    collection: Collection<Opponent>,
+#[async_trait]
+pub trait OpponentService: Send + Sync {
+    async fn create_opponent(
+        &self,
+        dto: CreateOpponentDto,
+        user_id: ObjectId,
+    ) -> Result<Opponent, Error>;
 }
 
-impl OpponentService {
-    pub fn new(db: &Database) -> Self {
-        let collection = db.collection("opponents");
-        Self { collection }
-    }
+pub struct OpponentServiceImpl {
+    opponent_repository: Box<dyn OpponentRepository>,
+}
 
-    pub async fn create_opponent(
+impl OpponentServiceImpl {
+    pub fn new(opponent_repository: Box<dyn OpponentRepository>) -> Self {
+        Self { opponent_repository }
+    }
+}
+
+#[async_trait]
+impl OpponentService for OpponentServiceImpl {
+    async fn create_opponent(
         &self,
         dto: CreateOpponentDto,
         user_id: ObjectId,
@@ -21,18 +33,11 @@ impl OpponentService {
         let opponent = Opponent::new(dto.name, user_id, dto.image_id, dto.image_url)
             .map_err(|e| Error::ValidationError(e))?;
 
-        let result = self
-            .collection
-            .insert_one(&opponent)
-            .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?;
-
         let created_opponent = self
-            .collection
-            .find_one(doc! { "_id": result.inserted_id })
+            .opponent_repository
+            .create(&opponent)
             .await
-            .map_err(|e| Error::DatabaseError(e.to_string()))?
-            .ok_or(Error::NotFound("Opponent not found after creation".into()))?;
+            .map_err(|e| Error::DatabaseError(e))?;
 
         Ok(created_opponent)
     }

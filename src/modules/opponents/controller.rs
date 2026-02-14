@@ -6,7 +6,8 @@ use crate::config::database::MongoDB;
 use crate::error::Error;
 use crate::modules::opponents::{
     model::{CreateOpponentDto, Opponent},
-    service::OpponentService,
+    repository::OpponentRepositoryImpl,
+    service::{OpponentService, OpponentServiceImpl},
 };
 
 #[post("/create", data = "<opponent_dto>")]
@@ -15,7 +16,7 @@ pub async fn create(
     auth: AuthenticatedUser,
     opponent_dto: Json<CreateOpponentDto>,
 ) -> Result<Json<Opponent>, Error> {
-    let service = OpponentService::new(&mongodb.db);
+    let service = OpponentServiceImpl::new(Box::new(OpponentRepositoryImpl::new(&mongodb.db)));
 
     let opponent = service
         .create_opponent(opponent_dto.into_inner(), auth.user_id)

@@ -19,6 +19,7 @@ aws-config = "1.5.12"
 aws-credential-types = "1.2.1"
 tokio = { version = "1.42.0", features = ["full", "test-util"] }
 dotenv = "0.15.0"
+futures = "0.3"
 jsonwebtoken = "9.3.0"
 serde_json = "1.0.134"
 thiserror = "2.0"
