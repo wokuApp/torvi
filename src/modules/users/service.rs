@@ -2,12 +2,10 @@ use crate::config::database::MongoDB;
 use crate::modules::users::model::User;
 use async_trait::async_trait;
 use bcrypt::{hash, verify, DEFAULT_COST};
-use chrono::Utc;
 use mongodb::bson::doc;
-use uuid::Uuid;
 
 #[async_trait]
-pub trait UserService {
+pub trait UserService: Send + Sync {
     async fn create_user(
         &self,
         email: String,
@@ -35,7 +33,7 @@ impl UserService for UserServiceImpl {
         self.mongodb
             .db
             .collection::<User>("users")
-            .find_one(doc! { "email": email }, None)
+            .find_one(doc! { "email": email })
             .await
             .map_err(|e| format!("Error finding user: {}", e))
     }
@@ -57,20 +55,12 @@ impl UserService for UserServiceImpl {
         let hashed_password = hash(password.as_bytes(), DEFAULT_COST)
             .map_err(|e| format!("Failed to hash password: {}", e))?;
 
-        let now = Utc::now();
-        let user = User {
-            id: Uuid::new_v4(),
-            email: email.trim().to_string(),
-            name,
-            password: hashed_password,
-            created_at: now,
-            updated_at: now,
-        };
+        let user = User::new(email.trim().to_string(), name, hashed_password);
 
         self.mongodb
             .db
             .collection::<User>("users")
-            .insert_one(&user, None)
+            .insert_one(&user)
             .await
             .map_err(|e| format!("Error creating user: {}", e))?;
 

@@ -1,20 +1,19 @@
-use mongodb::Database;
-use rocket::{serde::json::Json, State};
+use rocket::serde::json::Json;
+use rocket::State;
 
+use crate::config::database::MongoDB;
 use crate::error::Error;
 use crate::modules::users::{
     model::{CreateUserDto, UserResponse},
-    repository::UserRepository,
     service::{UserService, UserServiceImpl},
 };
 
 #[post("/create", data = "<user_dto>")]
 pub async fn create(
-    db: &State<Database>,
+    mongodb: &State<MongoDB>,
     user_dto: Json<CreateUserDto>,
 ) -> Result<Json<UserResponse>, Error> {
-    let repository = Box::new(UserRepository::new(db));
-    let service = UserServiceImpl::new(repository);
+    let service = UserServiceImpl::new(mongodb.inner().clone());
 
     let user = service
         .create_user(
