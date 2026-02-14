@@ -1,8 +1,7 @@
-use crate::config::database::MongoDB;
 use crate::modules::users::model::User;
+use crate::modules::users::repository::UserRepository;
 use async_trait::async_trait;
 use bcrypt::{hash, verify, DEFAULT_COST};
-use mongodb::bson::doc;
 
 #[async_trait]
 pub trait UserService: Send + Sync {
@@ -18,24 +17,19 @@ pub trait UserService: Send + Sync {
 }
 
 pub struct UserServiceImpl {
-    mongodb: MongoDB,
+    user_repository: Box<dyn UserRepository>,
 }
 
 impl UserServiceImpl {
-    pub fn new(mongodb: MongoDB) -> Self {
-        Self { mongodb }
+    pub fn new(user_repository: Box<dyn UserRepository>) -> Self {
+        Self { user_repository }
     }
 }
 
 #[async_trait]
 impl UserService for UserServiceImpl {
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, String> {
-        self.mongodb
-            .db
-            .collection::<User>("users")
-            .find_one(doc! { "email": email })
-            .await
-            .map_err(|e| format!("Error finding user: {}", e))
+        self.user_repository.find_by_email(email).await
     }
 
     async fn create_user(
@@ -48,7 +42,7 @@ impl UserService for UserServiceImpl {
             return Err("Email and password cannot be empty".to_string());
         }
 
-        if let Some(_) = self.find_by_email(&email).await? {
+        if let Some(_) = self.user_repository.find_by_email(&email).await? {
             return Err("Email already exists".to_string());
         }
 
@@ -57,12 +51,7 @@ impl UserService for UserServiceImpl {
 
         let user = User::new(email.trim().to_string(), name, hashed_password);
 
-        self.mongodb
-            .db
-            .collection::<User>("users")
-            .insert_one(&user)
-            .await
-            .map_err(|e| format!("Error creating user: {}", e))?;
+        self.user_repository.create(&user).await?;
 
         Ok(user)
     }
@@ -72,7 +61,7 @@ impl UserService for UserServiceImpl {
         email: &str,
         password: &str,
     ) -> Result<Option<User>, String> {
-        let user = match self.find_by_email(email).await? {
+        let user = match self.user_repository.find_by_email(email).await? {
             Some(user) => user,
             None => return Ok(None),
         };

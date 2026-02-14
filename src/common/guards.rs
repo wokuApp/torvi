@@ -6,6 +6,7 @@ use crate::config::database::MongoDB;
 use crate::config::jwt::JwtConfig;
 use crate::error::Error;
 use crate::modules::auth::service::{AuthConfig, AuthService, AuthServiceImpl};
+use crate::modules::users::repository::UserRepositoryImpl;
 use crate::modules::users::service::UserServiceImpl;
 
 #[derive(Debug)]
@@ -42,7 +43,7 @@ impl<'r> FromRequest<'r> for AuthenticatedUser {
             }
         };
 
-        let user_service = UserServiceImpl::new(mongodb.clone());
+        let user_service = UserServiceImpl::new(Box::new(UserRepositoryImpl::new(&mongodb.db)));
         let auth_service = AuthServiceImpl::new(
             Box::new(user_service),
             AuthConfig {

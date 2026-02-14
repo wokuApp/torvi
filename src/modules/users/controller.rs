@@ -5,6 +5,7 @@ use crate::config::database::MongoDB;
 use crate::error::Error;
 use crate::modules::users::{
     model::{CreateUserDto, UserResponse},
+    repository::UserRepositoryImpl,
     service::{UserService, UserServiceImpl},
 };
 
@@ -13,7 +14,7 @@ pub async fn create(
     mongodb: &State<MongoDB>,
     user_dto: Json<CreateUserDto>,
 ) -> Result<Json<UserResponse>, Error> {
-    let service = UserServiceImpl::new(mongodb.inner().clone());
+    let service = UserServiceImpl::new(Box::new(UserRepositoryImpl::new(&mongodb.db)));
 
     let user = service
         .create_user(
