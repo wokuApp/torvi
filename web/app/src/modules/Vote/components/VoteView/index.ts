@@ -1,0 +1,1 @@
+export { VoteView } from './VoteView'
