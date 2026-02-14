@@ -3,8 +3,11 @@ import { describe, it, expect } from 'vitest'
 import { App } from './App'
 
 describe('App', () => {
-  it('renders without crashing', () => {
+  it('renders without crashing', async () => {
     render(<App />)
-    expect(screen.getByText('Torvi')).toBeInTheDocument()
+    // RouterProvider renders asynchronously
+    expect(
+      await screen.findByText('Torvi', {}, { timeout: 3000 })
+    ).toBeInTheDocument()
   })
 })
