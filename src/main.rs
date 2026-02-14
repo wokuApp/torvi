@@ -16,6 +16,7 @@ fn rocket() -> _ {
         .attach(config::database::init())
         .attach(config::s3::init())
         .attach(config::jwt::init())
+        .attach(config::indices::init())
         .mount("/api/opponents", modules::opponents::routes())
         .mount("/api/tournaments", modules::tournaments::routes())
         .mount("/api/users", modules::users::routes())
