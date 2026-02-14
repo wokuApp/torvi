@@ -1,21 +1,31 @@
-# Stage 1: Chef - prepare dependency recipe
+# Stage 1: Frontend build
+FROM node:20-slim AS frontend
+WORKDIR /web
+COPY web/package.json web/package-lock.json ./
+COPY web/packages/ packages/
+COPY web/landing/package.json landing/package.json
+RUN npm ci
+COPY web/landing/ landing/
+RUN npm run build -w landing
+
+# Stage 2: Chef - prepare dependency recipe
 FROM rust:1.83-slim AS chef
 RUN cargo install cargo-chef
 WORKDIR /app
 
-# Stage 2: Planner - compute dependency recipe
+# Stage 3: Planner - compute dependency recipe
 FROM chef AS planner
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
 
-# Stage 3: Builder - build dependencies then application
+# Stage 4: Builder - build dependencies then application
 FROM chef AS builder
 COPY --from=planner /app/recipe.json recipe.json
 RUN cargo chef cook --release --recipe-path recipe.json
 COPY . .
 RUN cargo build --release
 
-# Stage 4: Runtime - minimal production image
+# Stage 5: Runtime - minimal production image
 FROM debian:bookworm-slim AS runtime
 RUN apt-get update && \
     apt-get install -y --no-install-recommends ca-certificates curl && \
@@ -25,6 +35,7 @@ USER appuser
 WORKDIR /app
 COPY --from=builder /app/target/release/torvi /app/torvi
 COPY --from=builder /app/Rocket.toml /app/Rocket.toml
+COPY --from=frontend /web/landing/out /app/web/landing/out
 
 ENV ROCKET_PROFILE=release
 EXPOSE 8000

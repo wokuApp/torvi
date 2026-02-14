@@ -1,0 +1,12 @@
+{
+  "name": "torvi-web",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "landing"
+  ],
+  "scripts": {
+    "test": "npm run test --workspaces --if-present",
+    "build": "npm run build --workspaces --if-present"
+  }
+}

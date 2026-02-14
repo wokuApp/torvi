@@ -1,5 +1,7 @@
 /target
 .env
 
-# prompts
-dev
+# Frontend
+web/**/node_modules
+web/landing/out
+web/landing/.next

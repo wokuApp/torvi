@@ -2,3 +2,6 @@ target/
 .git/
 .env
 .claude/
+web/**/node_modules
+web/landing/.next
+web/landing/out
