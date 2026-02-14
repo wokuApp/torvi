@@ -318,6 +318,76 @@ async fn test_vote_match_anonymous_voter() {
     assert!(result.is_ok());
 }
 
+// --- Scope validation tests ---
+
+#[tokio::test]
+async fn test_anonymous_voter_not_in_tournament_rejected() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+
+    let match_id = tournament.rounds[0].matches[0].match_id.clone();
+    let opponent1 = tournament.rounds[0].matches[0].opponent1;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+
+    let service = create_service_basic(mock_repo);
+
+    // Try voting with an anonymous voter that is NOT in the tournament
+    let outsider = VoterId::Anonymous("outsider-session".to_string());
+    let vote_dto = VoteMatchDto {
+        tournament_id,
+        match_id,
+        voted_for: opponent1,
+    };
+
+    let result = service.vote_match(vote_dto, outsider).await;
+
+    assert!(result.is_err());
+    assert_eq!(
+        result.unwrap_err(),
+        "Voter is not a participant in this tournament"
+    );
+}
+
+#[tokio::test]
+async fn test_registered_voter_not_in_tournament_rejected() {
+    let mut mock_repo = MockTournamentRepo::new();
+    let mut tournament = create_test_tournament();
+    let tournament_id = ObjectId::new();
+    tournament.id = Some(tournament_id);
+
+    let match_id = tournament.rounds[0].matches[0].match_id.clone();
+    let opponent1 = tournament.rounds[0].matches[0].opponent1;
+
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(tournament.clone())));
+
+    let service = create_service_basic(mock_repo);
+
+    // Try voting with a registered user that is NOT in the tournament
+    let outsider = VoterId::Registered(ObjectId::new());
+    let vote_dto = VoteMatchDto {
+        tournament_id,
+        match_id,
+        voted_for: opponent1,
+    };
+
+    let result = service.vote_match(vote_dto, outsider).await;
+
+    assert!(result.is_err());
+    assert_eq!(
+        result.unwrap_err(),
+        "Voter is not a participant in this tournament"
+    );
+}
+
 // --- Invite tests ---
 
 #[tokio::test]

@@ -169,6 +169,15 @@ impl TournamentService for TournamentServiceImpl {
             .map_err(|e| format!("Error finding tournament: {}", e))?
             .ok_or("Tournament not found")?;
 
+        // Verify voter is a participant in this tournament
+        if !tournament
+            .users
+            .iter()
+            .any(|u| u.voter_id == voter_id)
+        {
+            return Err("Voter is not a participant in this tournament".to_string());
+        }
+
         let current_round_index = tournament.rounds.len() - 1;
         let match_winner = {
             let current_match = tournament.rounds[current_round_index]
