@@ -7,6 +7,7 @@ mod config;
 pub mod common;
 pub mod error;
 mod modules;
+mod spa;
 
 #[launch]
 fn rocket() -> _ {
@@ -29,4 +30,6 @@ fn rocket() -> _ {
         .mount("/api/images", modules::images::routes())
         .mount("/api/auth", modules::auth::routes())
         .mount("/ws", modules::websocket::routes())
+        .mount("/", rocket::fs::FileServer::from("web/landing/out").rank(10))
+        .mount("/", spa::routes())
 }
