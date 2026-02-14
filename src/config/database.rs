@@ -1,6 +1,7 @@
 use mongodb::{Client, Database};
 use rocket::fairing::AdHoc;
 
+#[derive(Clone)]
 pub struct MongoDB {
     pub client: Client,
     pub db: Database,
@@ -16,11 +17,11 @@ impl MongoDB {
             .map_err(|e| format!("Failed to connect to MongoDB: {}", e))?;
 
         client
-            .list_database_names(None, None)
+            .list_database_names()
             .await
             .map_err(|e| format!("Failed to verify connection: {}", e))?;
 
-        let db_name = std::env::var("MONGODB_NAME").unwrap_or_else(|_| "project".to_string());
+        let db_name = std::env::var("MONGODB_NAME").unwrap_or_else(|_| "torvi".to_string());
 
         Ok(MongoDB {
             client: client.clone(),
