@@ -9,7 +9,7 @@ use rocket::{http::Status, local::asynchronous::Client, Build, Rocket};
 use crate::common::guards::{AuthenticatedUser, TournamentParticipant};
 use crate::modules::auth::model::{AnonymousClaims, JwtClaims};
 use crate::modules::auth::service::{AuthConfig, AuthService, AuthServiceImpl};
-use crate::modules::users::model::User;
+use crate::modules::users::model::{UpdateUserDto, User};
 use crate::modules::users::service::UserService;
 
 use async_trait::async_trait;
@@ -31,12 +31,24 @@ impl UserService for StubUserService {
         Ok(None)
     }
 
+    async fn find_by_id(&self, _id: &ObjectId) -> Result<Option<User>, String> {
+        Ok(None)
+    }
+
     async fn verify_credentials(
         &self,
         _email: &str,
         _password: &str,
     ) -> Result<Option<User>, String> {
         Ok(None)
+    }
+
+    async fn update_user(&self, _id: &ObjectId, _dto: UpdateUserDto) -> Result<User, String> {
+        Err("not implemented".to_string())
+    }
+
+    async fn delete_user(&self, _id: &ObjectId) -> Result<(), String> {
+        Err("not implemented".to_string())
     }
 }
 

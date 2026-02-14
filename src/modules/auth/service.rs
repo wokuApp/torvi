@@ -246,12 +246,34 @@ mod tests {
             Ok(self.user.clone())
         }
 
+        async fn find_by_id(
+            &self,
+            _id: &mongodb::bson::oid::ObjectId,
+        ) -> Result<Option<User>, String> {
+            Ok(self.user.clone())
+        }
+
         async fn verify_credentials(
             &self,
             _email: &str,
             _password: &str,
         ) -> Result<Option<User>, String> {
             Ok(self.user.clone())
+        }
+
+        async fn update_user(
+            &self,
+            _id: &mongodb::bson::oid::ObjectId,
+            _dto: crate::modules::users::model::UpdateUserDto,
+        ) -> Result<User, String> {
+            Err("not implemented".to_string())
+        }
+
+        async fn delete_user(
+            &self,
+            _id: &mongodb::bson::oid::ObjectId,
+        ) -> Result<(), String> {
+            Err("not implemented".to_string())
         }
     }
 

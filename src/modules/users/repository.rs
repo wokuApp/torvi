@@ -8,6 +8,8 @@ pub trait UserRepository: Send + Sync {
     async fn create(&self, user: &User) -> Result<(), String>;
     async fn find_by_email(&self, email: &str) -> Result<Option<User>, String>;
     async fn find_by_id(&self, id: &ObjectId) -> Result<Option<User>, String>;
+    async fn update(&self, user: &User) -> Result<(), String>;
+    async fn delete(&self, id: &ObjectId) -> Result<(), String>;
 }
 
 pub struct UserRepositoryImpl {
@@ -45,6 +47,35 @@ impl UserRepository for UserRepositoryImpl {
             .find_one(doc! { "_id": id })
             .await
             .map_err(|e| format!("Error finding user: {}", e))
+    }
+
+    async fn update(&self, user: &User) -> Result<(), String> {
+        let id = user
+            .id
+            .as_ref()
+            .ok_or("User must have an id to update")?;
+
+        self.db
+            .collection::<User>("users")
+            .replace_one(doc! { "_id": id }, user)
+            .await
+            .map_err(|e| format!("Error updating user: {}", e))?;
+
+        Ok(())
+    }
+
+    async fn delete(&self, id: &ObjectId) -> Result<(), String> {
+        let result = self
+            .db
+            .collection::<User>("users")
+            .delete_one(doc! { "_id": id })
+            .await
+            .map_err(|e| format!("Error deleting user: {}", e))?;
+
+        if result.deleted_count == 0 {
+            return Err("User not found".to_string());
+        }
+        Ok(())
     }
 }
 

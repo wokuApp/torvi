@@ -25,9 +25,10 @@ pub fn init() -> AdHoc {
         let tournament_repo = Arc::new(TournamentRepositoryImpl::new(&mongodb.db));
         let opponent_repo = Arc::new(OpponentRepositoryImpl::new(&mongodb.db));
 
-        let user_service = Arc::new(UserServiceImpl::new(user_repo));
+        let user_service: Arc<dyn UserService + Send + Sync> =
+            Arc::new(UserServiceImpl::new(user_repo));
         let auth_service = Arc::new(AuthServiceImpl::new(
-            user_service as Arc<dyn UserService + Send + Sync>,
+            user_service.clone(),
             AuthConfig {
                 jwt_secret: jwt_config.secret.clone(),
             },
@@ -41,6 +42,7 @@ pub fn init() -> AdHoc {
         let opponent_service = Arc::new(OpponentServiceImpl::new(opponent_repo));
 
         rocket
+            .manage(user_service)
             .manage(auth_service as Arc<dyn AuthService + Send + Sync>)
             .manage(tournament_service as Arc<dyn TournamentService + Send + Sync>)
             .manage(opponent_service as Arc<dyn OpponentService + Send + Sync>)

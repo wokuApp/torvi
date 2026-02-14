@@ -3,7 +3,7 @@ use mockall::mock;
 use mongodb::bson::oid::ObjectId;
 use std::sync::Arc;
 
-use crate::modules::users::model::User;
+use crate::modules::users::model::{UpdateUserDto, User};
 use crate::modules::users::repository::UserRepository;
 use crate::modules::users::service::{UserService, UserServiceImpl};
 
@@ -15,6 +15,8 @@ mock! {
         async fn create(&self, user: &User) -> Result<(), String>;
         async fn find_by_email(&self, email: &str) -> Result<Option<User>, String>;
         async fn find_by_id(&self, id: &ObjectId) -> Result<Option<User>, String>;
+        async fn update(&self, user: &User) -> Result<(), String>;
+        async fn delete(&self, id: &ObjectId) -> Result<(), String>;
     }
 }
 
@@ -327,6 +329,226 @@ async fn test_create_user_repository_error() {
     // Assert
     assert!(result.is_err());
     assert_eq!(result.unwrap_err(), "Database connection failed");
+}
+
+#[tokio::test]
+async fn test_find_by_id_found() {
+    let mut mock_repo = MockUserRepo::new();
+    let user = create_test_user();
+    let user_id = user.id.unwrap();
+    let user_clone = user.clone();
+    mock_repo
+        .expect_find_by_id()
+        .with(mockall::predicate::eq(user_id))
+        .times(1)
+        .returning(move |_| Ok(Some(user_clone.clone())));
+
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
+
+    let result = service.find_by_id(&user_id).await;
+    assert!(result.is_ok());
+    assert!(result.unwrap().is_some());
+}
+
+#[tokio::test]
+async fn test_find_by_id_not_found() {
+    let mut mock_repo = MockUserRepo::new();
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(|_| Ok(None));
+
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
+
+    let result = service.find_by_id(&ObjectId::new()).await;
+    assert!(result.is_ok());
+    assert!(result.unwrap().is_none());
+}
+
+#[tokio::test]
+async fn test_update_user_name() {
+    let mut mock_repo = MockUserRepo::new();
+    let user = create_test_user();
+    let user_id = user.id.unwrap();
+    let user_clone = user.clone();
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(user_clone.clone())));
+    mock_repo
+        .expect_update()
+        .times(1)
+        .returning(|_| Ok(()));
+
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
+    let dto = UpdateUserDto {
+        email: None,
+        name: Some("Updated Name".to_string()),
+        password: None,
+    };
+
+    let result = service.update_user(&user_id, dto).await;
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap().name, "Updated Name");
+}
+
+#[tokio::test]
+async fn test_update_user_email() {
+    let mut mock_repo = MockUserRepo::new();
+    let user = create_test_user();
+    let user_id = user.id.unwrap();
+    let user_clone = user.clone();
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(user_clone.clone())));
+    mock_repo
+        .expect_find_by_email()
+        .times(1)
+        .returning(|_| Ok(None));
+    mock_repo
+        .expect_update()
+        .times(1)
+        .returning(|_| Ok(()));
+
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
+    let dto = UpdateUserDto {
+        email: Some("new@example.com".to_string()),
+        name: None,
+        password: None,
+    };
+
+    let result = service.update_user(&user_id, dto).await;
+    assert!(result.is_ok());
+    assert_eq!(result.unwrap().email, "new@example.com");
+}
+
+#[tokio::test]
+async fn test_update_user_email_already_taken() {
+    let mut mock_repo = MockUserRepo::new();
+    let user = create_test_user();
+    let user_id = user.id.unwrap();
+    let user_clone = user.clone();
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(user_clone.clone())));
+    let other_user = {
+        let mut u = create_test_user();
+        u.id = Some(ObjectId::new()); // different ID
+        u
+    };
+    mock_repo
+        .expect_find_by_email()
+        .times(1)
+        .returning(move |_| Ok(Some(other_user.clone())));
+
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
+    let dto = UpdateUserDto {
+        email: Some("taken@example.com".to_string()),
+        name: None,
+        password: None,
+    };
+
+    let result = service.update_user(&user_id, dto).await;
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "Email already exists");
+}
+
+#[tokio::test]
+async fn test_update_user_empty_email() {
+    let mut mock_repo = MockUserRepo::new();
+    let user = create_test_user();
+    let user_id = user.id.unwrap();
+    let user_clone = user.clone();
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(user_clone.clone())));
+
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
+    let dto = UpdateUserDto {
+        email: Some("  ".to_string()),
+        name: None,
+        password: None,
+    };
+
+    let result = service.update_user(&user_id, dto).await;
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "Email cannot be empty");
+}
+
+#[tokio::test]
+async fn test_update_user_short_password() {
+    let mut mock_repo = MockUserRepo::new();
+    let user = create_test_user();
+    let user_id = user.id.unwrap();
+    let user_clone = user.clone();
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(move |_| Ok(Some(user_clone.clone())));
+
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
+    let dto = UpdateUserDto {
+        email: None,
+        name: None,
+        password: Some("short".to_string()),
+    };
+
+    let result = service.update_user(&user_id, dto).await;
+    assert!(result.is_err());
+    assert_eq!(
+        result.unwrap_err(),
+        "Password must be at least 8 characters"
+    );
+}
+
+#[tokio::test]
+async fn test_update_user_not_found() {
+    let mut mock_repo = MockUserRepo::new();
+    mock_repo
+        .expect_find_by_id()
+        .times(1)
+        .returning(|_| Ok(None));
+
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
+    let dto = UpdateUserDto {
+        email: None,
+        name: Some("New Name".to_string()),
+        password: None,
+    };
+
+    let result = service.update_user(&ObjectId::new(), dto).await;
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "User not found");
+}
+
+#[tokio::test]
+async fn test_delete_user_success() {
+    let mut mock_repo = MockUserRepo::new();
+    mock_repo
+        .expect_delete()
+        .times(1)
+        .returning(|_| Ok(()));
+
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
+    let result = service.delete_user(&ObjectId::new()).await;
+    assert!(result.is_ok());
+}
+
+#[tokio::test]
+async fn test_delete_user_not_found() {
+    let mut mock_repo = MockUserRepo::new();
+    mock_repo
+        .expect_delete()
+        .times(1)
+        .returning(|_| Err("User not found".to_string()));
+
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
+    let result = service.delete_user(&ObjectId::new()).await;
+    assert!(result.is_err());
+    assert_eq!(result.unwrap_err(), "User not found");
 }
 
 // --- Integration tests (require MongoDB) ---

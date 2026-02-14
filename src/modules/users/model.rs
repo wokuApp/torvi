@@ -50,6 +50,23 @@ pub struct UserResponse {
     pub updated_at: DateTime,
 }
 
+#[derive(Debug, Serialize)]
+pub struct PublicUserResponse {
+    pub id: ObjectId,
+    pub name: String,
+    pub created_at: DateTime,
+}
+
+impl From<User> for PublicUserResponse {
+    fn from(user: User) -> Self {
+        Self {
+            id: user.id.expect("User must have an id to convert to response"),
+            name: user.name,
+            created_at: user.created_at,
+        }
+    }
+}
+
 impl From<User> for UserResponse {
     fn from(user: User) -> Self {
         Self {

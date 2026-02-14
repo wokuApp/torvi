@@ -1,7 +1,9 @@
 use mongodb::bson::{oid::ObjectId, DateTime};
 use serde_json;
 
-use crate::modules::users::model::{CreateUserDto, UpdateUserDto, User, UserResponse};
+use crate::modules::users::model::{
+    CreateUserDto, PublicUserResponse, UpdateUserDto, User, UserResponse,
+};
 
 #[test]
 fn test_user_new() {
@@ -136,4 +138,24 @@ fn test_user_response_serialization() {
     assert!(!serialized.contains("password"));
     assert!(serialized.contains("created_at"));
     assert!(serialized.contains("updated_at"));
+}
+
+#[test]
+fn test_public_user_response_from_user() {
+    let mut user = User::new(
+        "test@example.com".to_string(),
+        "Test User".to_string(),
+        "password123".to_string(),
+    );
+    user.id = Some(ObjectId::new());
+
+    let response = PublicUserResponse::from(user.clone());
+    assert_eq!(response.id, user.id.unwrap());
+    assert_eq!(response.name, user.name);
+    assert_eq!(response.created_at, user.created_at);
+
+    let serialized = serde_json::to_string(&response).unwrap();
+    assert!(!serialized.contains("email"));
+    assert!(!serialized.contains("password"));
+    assert!(serialized.contains("Test User"));
 }

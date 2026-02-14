@@ -20,7 +20,10 @@ mock! {
             password: String,
         ) -> Result<User, String>;
         async fn find_by_email(&self, email: &str) -> Result<Option<User>, String>;
+        async fn find_by_id(&self, id: &ObjectId) -> Result<Option<User>, String>;
         async fn verify_credentials(&self, email: &str, password: &str) -> Result<Option<User>, String>;
+        async fn update_user(&self, id: &ObjectId, dto: crate::modules::users::model::UpdateUserDto) -> Result<User, String>;
+        async fn delete_user(&self, id: &ObjectId) -> Result<(), String>;
     }
 }
 
