@@ -104,7 +104,23 @@ Dependencies flow inward: **Controller -> Service -> Repository -> Model**
 - Never log sensitive data (passwords, tokens, PII)
 - Use `#[serde(skip_serializing)]` on password fields
 
-## Testing
+## Testing (TDD is mandatory)
+
+**IMPORTANT: All development MUST follow Test-Driven Development (TDD).**
+
+### TDD Workflow (Red-Green-Refactor)
+
+1. **Red**: Write a failing test that defines the expected behavior
+2. **Green**: Write the minimum code to make the test pass
+3. **Refactor**: Clean up the code while keeping all tests green
+
+### TDD Rules
+
+- Never write production code without a failing test first
+- Write only enough test to fail (compilation failure counts as failure)
+- Write only enough production code to make the failing test pass
+- Tests must be committed alongside or before the production code they validate
+- If fixing a bug, write a test that reproduces the bug first
 
 ### Unit Tests
 
