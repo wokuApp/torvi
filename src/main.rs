@@ -14,6 +14,7 @@ fn rocket() -> _ {
     config::logging::init();
 
     rocket::build()
+        .attach(config::request_id::init())
         .attach(config::security::init())
         .attach(config::cors::init())
         .attach(config::database::init())
