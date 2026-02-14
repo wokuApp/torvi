@@ -23,4 +23,5 @@ fn rocket() -> _ {
         .mount("/api/users", modules::users::routes())
         .mount("/api/images", modules::images::routes())
         .mount("/api/auth", modules::auth::routes())
+        .mount("/ws", modules::websocket::routes())
 }
