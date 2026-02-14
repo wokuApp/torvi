@@ -164,6 +164,48 @@ pub struct VoteMatchDto {
     pub voted_for: ObjectId,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TournamentInvite {
+    #[serde(rename = "_id", skip_serializing_if = "Option::is_none")]
+    pub id: Option<ObjectId>,
+    pub code: String,
+    pub tournament_id: ObjectId,
+    pub max_uses: u32,
+    pub current_uses: u32,
+    pub expires_at: DateTime,
+    pub created_by: ObjectId,
+    pub created_at: DateTime,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct CreateInviteDto {
+    pub max_uses: Option<u32>,
+    pub expires_in_hours: Option<u32>,
+}
+
+#[derive(Debug, Serialize)]
+pub struct InviteResponse {
+    pub code: String,
+    pub tournament_id: ObjectId,
+    pub max_uses: u32,
+    pub expires_at: DateTime,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct JoinTournamentDto {
+    pub invite_code: String,
+    pub display_name: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct JoinTournamentResponse {
+    pub access_token: String,
+    pub token_type: String,
+    pub session_id: String,
+    pub display_name: String,
+    pub tournament_id: ObjectId,
+}
+
 impl Match {
     pub fn process_vote(
         &mut self,

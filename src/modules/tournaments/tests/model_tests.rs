@@ -2,8 +2,10 @@ use mongodb::bson::{oid::ObjectId, DateTime};
 use std::collections::HashMap;
 
 use crate::modules::tournaments::model::{
-    CreateTournamentDto, Match, OpponentDto, Round, Tournament, TournamentOpponent,
-    TournamentResponse, TournamentStatus, TournamentUser, UserDto, VoteMatchDto, VoterId,
+    CreateInviteDto, CreateTournamentDto, InviteResponse, JoinTournamentDto,
+    JoinTournamentResponse, Match, OpponentDto, Round, Tournament, TournamentInvite,
+    TournamentOpponent, TournamentResponse, TournamentStatus, TournamentUser, UserDto,
+    VoteMatchDto, VoterId,
 };
 
 fn create_test_opponents() -> Vec<OpponentDto> {
@@ -341,4 +343,79 @@ fn test_vote_match_dto_deserialization() {
     assert_eq!(dto.tournament_id, tournament_id);
     assert_eq!(dto.match_id, match_id);
     assert_eq!(dto.voted_for, voted_for);
+}
+
+#[test]
+fn test_invite_serialization() {
+    let tournament_id = ObjectId::new();
+    let created_by = ObjectId::new();
+    let invite = TournamentInvite {
+        id: Some(ObjectId::new()),
+        code: "ABC12345".to_string(),
+        tournament_id,
+        max_uses: 10,
+        current_uses: 0,
+        expires_at: DateTime::now(),
+        created_by,
+        created_at: DateTime::now(),
+    };
+
+    let json = serde_json::to_string(&invite).unwrap();
+    let deserialized: TournamentInvite = serde_json::from_str(&json).unwrap();
+    assert_eq!(deserialized.code, "ABC12345");
+    assert_eq!(deserialized.tournament_id, tournament_id);
+    assert_eq!(deserialized.max_uses, 10);
+    assert_eq!(deserialized.current_uses, 0);
+    assert_eq!(deserialized.created_by, created_by);
+}
+
+#[test]
+fn test_create_invite_dto_deserialization() {
+    let json = r#"{"max_uses": 5, "expires_in_hours": 48}"#;
+    let dto: CreateInviteDto = serde_json::from_str(json).unwrap();
+    assert_eq!(dto.max_uses, Some(5));
+    assert_eq!(dto.expires_in_hours, Some(48));
+
+    let json_empty = r#"{}"#;
+    let dto_empty: CreateInviteDto = serde_json::from_str(json_empty).unwrap();
+    assert!(dto_empty.max_uses.is_none());
+    assert!(dto_empty.expires_in_hours.is_none());
+}
+
+#[test]
+fn test_join_dto_deserialization() {
+    let json = r#"{"invite_code": "ABC12345", "display_name": "Player 1"}"#;
+    let dto: JoinTournamentDto = serde_json::from_str(json).unwrap();
+    assert_eq!(dto.invite_code, "ABC12345");
+    assert_eq!(dto.display_name, "Player 1");
+}
+
+#[test]
+fn test_invite_response_serialization() {
+    let tournament_id = ObjectId::new();
+    let response = InviteResponse {
+        code: "ABC12345".to_string(),
+        tournament_id,
+        max_uses: 10,
+        expires_at: DateTime::now(),
+    };
+    let json = serde_json::to_string(&response).unwrap();
+    assert!(json.contains("ABC12345"));
+    assert!(json.contains(&tournament_id.to_string()));
+}
+
+#[test]
+fn test_join_response_serialization() {
+    let tournament_id = ObjectId::new();
+    let response = JoinTournamentResponse {
+        access_token: "test_token".to_string(),
+        token_type: "Bearer".to_string(),
+        session_id: "session-uuid".to_string(),
+        display_name: "Player 1".to_string(),
+        tournament_id,
+    };
+    let json = serde_json::to_string(&response).unwrap();
+    assert!(json.contains("test_token"));
+    assert!(json.contains("session-uuid"));
+    assert!(json.contains("Player 1"));
 }

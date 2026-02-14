@@ -1,4 +1,4 @@
-use crate::modules::tournaments::model::Tournament;
+use crate::modules::tournaments::model::{Tournament, TournamentInvite};
 use async_trait::async_trait;
 use mongodb::bson::{doc, oid::ObjectId};
 use mongodb::Database;
@@ -70,14 +70,66 @@ impl TournamentRepository for TournamentRepositoryImpl {
     }
 }
 
+#[async_trait]
+pub trait InviteRepository: Send + Sync {
+    async fn create(&self, invite: TournamentInvite) -> Result<(), String>;
+    async fn find_by_code(&self, code: &str) -> Result<Option<TournamentInvite>, String>;
+    async fn increment_uses(&self, id: &ObjectId) -> Result<(), String>;
+}
+
+pub struct InviteRepositoryImpl {
+    db: Database,
+}
+
+impl InviteRepositoryImpl {
+    pub fn new(db: &Database) -> Self {
+        Self { db: db.clone() }
+    }
+}
+
+#[async_trait]
+impl InviteRepository for InviteRepositoryImpl {
+    async fn create(&self, invite: TournamentInvite) -> Result<(), String> {
+        self.db
+            .collection::<TournamentInvite>("tournament_invites")
+            .insert_one(invite)
+            .await
+            .map_err(|e| format!("Error creating invite: {}", e))?;
+        Ok(())
+    }
+
+    async fn find_by_code(&self, code: &str) -> Result<Option<TournamentInvite>, String> {
+        self.db
+            .collection::<TournamentInvite>("tournament_invites")
+            .find_one(doc! { "code": code })
+            .await
+            .map_err(|e| format!("Error finding invite: {}", e))
+    }
+
+    async fn increment_uses(&self, id: &ObjectId) -> Result<(), String> {
+        self.db
+            .collection::<TournamentInvite>("tournament_invites")
+            .update_one(
+                doc! { "_id": id },
+                doc! { "$inc": { "current_uses": 1 } },
+            )
+            .await
+            .map_err(|e| format!("Error incrementing invite uses: {}", e))?;
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
 
     #[test]
     fn test_tournament_repository_impl_creation() {
-        // This test verifies the struct can be constructed.
-        // Integration tests with real MongoDB will be added later.
         let _repo_fn = TournamentRepositoryImpl::new;
+    }
+
+    #[test]
+    fn test_invite_repository_impl_creation() {
+        let _repo_fn = InviteRepositoryImpl::new;
     }
 }
