@@ -2,7 +2,7 @@ use rocket::data::{Data, ToByteUnit};
 use rocket::http::ContentType;
 use rocket::serde::json::Json;
 use rocket::State;
-use std::io::Read;
+use rocket::tokio::io::AsyncReadExt;
 use uuid::Uuid;
 
 use crate::common::guards::AuthenticatedUser;
@@ -24,7 +24,7 @@ pub async fn upload(
     content_type: &ContentType,
     file: Data<'_>,
 ) -> Result<Json<ImageResponse>, Error> {
-    if !content_type.is_image() {
+    if content_type.top() != "image" {
         return Err(Error::BadRequest("File must be an image".to_string()));
     }
 

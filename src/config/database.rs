@@ -1,7 +1,7 @@
 use mongodb::{Client, Database};
 use rocket::fairing::AdHoc;
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MongoDB {
     pub client: Client,
     pub db: Database,

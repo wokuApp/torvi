@@ -45,12 +45,9 @@ impl TournamentRepository for TournamentRepositoryImpl {
             .as_ref()
             .ok_or("Tournament must have an id to update")?;
 
-        let bson = mongodb::bson::to_document(tournament)
-            .map_err(|e| format!("Error serializing tournament: {}", e))?;
-
         self.db
             .collection::<Tournament>("tournaments")
-            .replace_one(doc! { "_id": id }, bson)
+            .replace_one(doc! { "_id": id }, tournament)
             .await
             .map_err(|e| format!("Error updating tournament: {}", e))?;
 

@@ -29,7 +29,7 @@ impl AuthServiceImpl {
         }
     }
 
-    fn generate_token(&self, user_id: String, email: String) -> Result<String, String> {
+    pub fn generate_token(&self, user_id: String, email: String) -> Result<String, String> {
         let now = Utc::now().timestamp() as usize;
         let claims = JwtClaims {
             sub: user_id,

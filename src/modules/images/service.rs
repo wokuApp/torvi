@@ -6,10 +6,9 @@ use aws_credential_types::Credentials;
 use aws_sdk_s3::config::{BehaviorVersion, Region};
 use aws_sdk_s3::primitives::ByteStream;
 use aws_sdk_s3::Client;
-use image::{DynamicImage, ImageFormat};
-use mongodb::bson::ObjectId;
+use image::{DynamicImage, GenericImageView};
+use mongodb::bson::oid::ObjectId;
 use rocket::State;
-use std::io::Cursor;
 use uuid::Uuid;
 
 const MAX_IMAGE_SIZE: u32 = 1024;
@@ -34,14 +33,14 @@ pub trait ImageService {
 }
 
 pub struct ImageServiceImpl {
-    db: &'static MongoDB,
+    db: MongoDB,
     config: ImageServiceConfig,
 }
 
 impl ImageServiceImpl {
-    pub fn new(db: &'static State<MongoDB>, config: &S3Config) -> Self {
+    pub fn new(db: &State<MongoDB>, config: &S3Config) -> Self {
         Self {
-            db,
+            db: db.inner().clone(),
             config: ImageServiceConfig {
                 region: config.region.clone(),
                 access_key_id: config.access_key_id.clone(),

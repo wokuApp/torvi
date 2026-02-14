@@ -1,4 +1,4 @@
-use mongodb::bson::ObjectId;
+use mongodb::bson::oid::ObjectId;
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome, Request};
 

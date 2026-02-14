@@ -3,7 +3,7 @@ use crate::modules::tournaments::model::{
 };
 use crate::modules::tournaments::repository::TournamentRepository;
 use async_trait::async_trait;
-use mongodb::bson::{DateTime, ObjectId};
+use mongodb::bson::{oid::ObjectId, DateTime};
 use std::collections::HashMap;
 use uuid::Uuid;
 

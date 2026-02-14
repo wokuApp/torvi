@@ -2,19 +2,19 @@ use mongodb::bson::{doc, oid::ObjectId, DateTime};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct TournamentOpponent {
     pub opponent_id: ObjectId,
     pub url: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct TournamentUser {
     pub user_id: ObjectId,
     pub name: String,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Match {
     pub match_id: String,
     pub opponent1: ObjectId,
@@ -24,14 +24,14 @@ pub struct Match {
     pub match_date: DateTime,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub struct Round {
     pub round_number: i32,
     pub matches: Vec<Match>,
     pub automatic_winners: Vec<ObjectId>,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
 pub enum TournamentStatus {
     #[serde(rename = "active")]
     Active,

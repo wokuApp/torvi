@@ -1,5 +1,6 @@
 use rocket::fairing::AdHoc;
 
+#[derive(Debug)]
 pub struct S3Config {
     pub region: String,
     pub access_key_id: String,

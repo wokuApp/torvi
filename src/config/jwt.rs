@@ -1,5 +1,6 @@
 use rocket::fairing::AdHoc;
 
+#[derive(Debug)]
 pub struct JwtConfig {
     pub secret: String,
 }

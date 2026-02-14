@@ -14,7 +14,7 @@ pub async fn login(
     jwt_config: &State<JwtConfig>,
     login_dto: Json<LoginDto>,
 ) -> Result<Json<LoginResponse>, Error> {
-    let user_service = UserServiceImpl::new(mongodb.clone());
+    let user_service = UserServiceImpl::new(mongodb.inner().clone());
     let auth_service = AuthServiceImpl::new(
         Box::new(user_service),
         AuthConfig {
