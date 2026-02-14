@@ -1,7 +1,7 @@
 #[macro_use]
 extern crate rocket;
 
-use dotenv::dotenv;
+use dotenvy::dotenv;
 
 mod config;
 pub mod common;
