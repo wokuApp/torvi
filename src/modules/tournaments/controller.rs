@@ -3,10 +3,10 @@ use std::sync::Arc;
 use rocket::serde::json::Json;
 use rocket::State;
 
-use crate::common::guards::AuthenticatedUser;
+use crate::common::guards::{AuthenticatedUser, TournamentParticipant};
 use crate::error::Error;
 use crate::modules::tournaments::{
-    model::{CreateTournamentDto, TournamentResponse, VoterId, VoteMatchDto},
+    model::{CreateTournamentDto, TournamentResponse, VoteMatchDto},
     service::TournamentService,
 };
 
@@ -26,12 +26,12 @@ pub async fn create(
 
 #[post("/match/vote", data = "<vote_dto>")]
 pub async fn vote_match(
-    auth: AuthenticatedUser,
+    participant: TournamentParticipant,
     service: &State<Arc<dyn TournamentService + Send + Sync>>,
     vote_dto: Json<VoteMatchDto>,
 ) -> Result<Json<TournamentResponse>, Error> {
     let tournament = service
-        .vote_match(vote_dto.into_inner(), VoterId::Registered(auth.user_id))
+        .vote_match(vote_dto.into_inner(), participant.voter_id())
         .await
         .map_err(|e| Error::BadRequest(e))?;
 

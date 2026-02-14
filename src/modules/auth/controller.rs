@@ -5,7 +5,8 @@ use rocket::State;
 
 use crate::error::Error;
 use crate::modules::auth::model::{
-    LoginDto, LoginResponse, RefreshRequest, RefreshResponse, RegisterDto,
+    AnonymousTokenRequest, AnonymousTokenResponse, LoginDto, LoginResponse, RefreshRequest,
+    RefreshResponse, RegisterDto,
 };
 use crate::modules::auth::service::AuthService;
 
@@ -51,6 +52,22 @@ pub async fn register(
     Ok(Json(response))
 }
 
+#[post("/anonymous", data = "<request>")]
+pub async fn anonymous_token(
+    auth_service: &State<Arc<dyn AuthService + Send + Sync>>,
+    request: Json<AnonymousTokenRequest>,
+) -> Result<Json<AnonymousTokenResponse>, Error> {
+    if request.display_name.trim().is_empty() {
+        return Err(Error::BadRequest("Display name cannot be empty".to_string()));
+    }
+
+    let response = auth_service
+        .generate_anonymous_token(&request.tournament_id, &request.display_name)
+        .map_err(|e| Error::Internal(e))?;
+
+    Ok(Json(response))
+}
+
 pub fn routes() -> Vec<rocket::Route> {
-    routes![login, refresh, register]
+    routes![login, refresh, register, anonymous_token]
 }
