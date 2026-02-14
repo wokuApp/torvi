@@ -8,6 +8,7 @@ pub trait TournamentRepository: Send + Sync {
     async fn create(&self, tournament: Tournament) -> Result<(), String>;
     async fn find_by_id(&self, id: &ObjectId) -> Result<Option<Tournament>, String>;
     async fn update(&self, tournament: &Tournament) -> Result<(), String>;
+    async fn delete(&self, id: &ObjectId) -> Result<(), String>;
 }
 
 pub struct TournamentRepositoryImpl {
@@ -51,6 +52,20 @@ impl TournamentRepository for TournamentRepositoryImpl {
             .await
             .map_err(|e| format!("Error updating tournament: {}", e))?;
 
+        Ok(())
+    }
+
+    async fn delete(&self, id: &ObjectId) -> Result<(), String> {
+        let result = self
+            .db
+            .collection::<Tournament>("tournaments")
+            .delete_one(doc! { "_id": id })
+            .await
+            .map_err(|e| format!("Error deleting tournament: {}", e))?;
+
+        if result.deleted_count == 0 {
+            return Err("Tournament not found".to_string());
+        }
         Ok(())
     }
 }

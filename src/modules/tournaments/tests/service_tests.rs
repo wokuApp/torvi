@@ -19,6 +19,7 @@ mock! {
         async fn create(&self, tournament: Tournament) -> Result<(), String>;
         async fn update(&self, tournament: &Tournament) -> Result<(), String>;
         async fn find_by_id(&self, id: &ObjectId) -> Result<Option<Tournament>, String>;
+        async fn delete(&self, id: &ObjectId) -> Result<(), String>;
     }
 }
 
