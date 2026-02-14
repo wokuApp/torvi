@@ -7,7 +7,7 @@ use crate::config::jwt::JwtConfig;
 use crate::modules::auth::service::{AuthConfig, AuthService, AuthServiceImpl};
 use crate::modules::opponents::repository::OpponentRepositoryImpl;
 use crate::modules::opponents::service::{OpponentService, OpponentServiceImpl};
-use crate::modules::tournaments::repository::TournamentRepositoryImpl;
+use crate::modules::tournaments::repository::{InviteRepositoryImpl, TournamentRepositoryImpl};
 use crate::modules::tournaments::service::{TournamentService, TournamentServiceImpl};
 use crate::modules::users::repository::UserRepositoryImpl;
 use crate::modules::users::service::{UserService, UserServiceImpl};
@@ -32,7 +32,12 @@ pub fn init() -> AdHoc {
                 jwt_secret: jwt_config.secret.clone(),
             },
         ));
-        let tournament_service = Arc::new(TournamentServiceImpl::new(tournament_repo));
+        let invite_repo = Arc::new(InviteRepositoryImpl::new(&mongodb.db));
+        let tournament_service = Arc::new(TournamentServiceImpl::new(
+            tournament_repo,
+            invite_repo,
+            auth_service.clone() as Arc<dyn AuthService + Send + Sync>,
+        ));
         let opponent_service = Arc::new(OpponentServiceImpl::new(opponent_repo));
 
         rocket
