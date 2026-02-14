@@ -5,3 +5,6 @@
 web/**/node_modules
 web/landing/out
 web/landing/.next
+
+# prompts
+dev
