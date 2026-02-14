@@ -6,6 +6,7 @@ use crate::modules::users::{model::User, service::UserService};
 use async_trait::async_trait;
 use mockall::mock;
 use mongodb::bson::{oid::ObjectId, DateTime};
+use std::sync::Arc;
 
 mock! {
     UserService {}
@@ -51,7 +52,7 @@ async fn test_login_success() {
         .returning(move |_, _| Ok(Some(test_user_clone.clone())));
 
     let auth_service = AuthServiceImpl::new(
-        Box::new(mock_user_service),
+        Arc::new(mock_user_service),
         AuthConfig {
             jwt_secret: "test_secret".to_string(),
         },
@@ -86,7 +87,7 @@ async fn test_login_invalid_credentials() {
         .returning(|_, _| Ok(None));
 
     let auth_service = AuthServiceImpl::new(
-        Box::new(mock_user_service),
+        Arc::new(mock_user_service),
         AuthConfig {
             jwt_secret: "test_secret".to_string(),
         },
@@ -106,7 +107,7 @@ async fn test_login_invalid_credentials() {
 fn test_verify_token_success() {
     // Arrange
     let auth_service = AuthServiceImpl::new(
-        Box::new(MockUserService::new()),
+        Arc::new(MockUserService::new()),
         AuthConfig {
             jwt_secret: "test_secret".to_string(),
         },
@@ -130,7 +131,7 @@ fn test_verify_token_success() {
 fn test_verify_token_invalid() {
     // Arrange
     let auth_service = AuthServiceImpl::new(
-        Box::new(MockUserService::new()),
+        Arc::new(MockUserService::new()),
         AuthConfig {
             jwt_secret: "test_secret".to_string(),
         },
@@ -148,7 +149,7 @@ fn test_verify_token_invalid() {
 fn test_generate_token() {
     // Arrange
     let auth_service = AuthServiceImpl::new(
-        Box::new(MockUserService::new()),
+        Arc::new(MockUserService::new()),
         AuthConfig {
             jwt_secret: "test_secret".to_string(),
         },
@@ -184,7 +185,7 @@ async fn test_register_success() {
         .returning(move |_, _, _| Ok(test_user_clone.clone()));
 
     let auth_service = AuthServiceImpl::new(
-        Box::new(mock_user_service),
+        Arc::new(mock_user_service),
         AuthConfig {
             jwt_secret: "test_secret_key_for_testing".to_string(),
         },
@@ -214,7 +215,7 @@ async fn test_register_duplicate_email() {
         .returning(|_, _, _| Err("Email already exists".to_string()));
 
     let auth_service = AuthServiceImpl::new(
-        Box::new(mock_user_service),
+        Arc::new(mock_user_service),
         AuthConfig {
             jwt_secret: "test_secret".to_string(),
         },
@@ -242,7 +243,7 @@ async fn test_register_short_password() {
         });
 
     let auth_service = AuthServiceImpl::new(
-        Box::new(mock_user_service),
+        Arc::new(mock_user_service),
         AuthConfig {
             jwt_secret: "test_secret".to_string(),
         },

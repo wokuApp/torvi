@@ -5,6 +5,7 @@ use crate::modules::tournaments::repository::TournamentRepository;
 use async_trait::async_trait;
 use mongodb::bson::{oid::ObjectId, DateTime};
 use std::collections::HashMap;
+use std::sync::Arc;
 use uuid::Uuid;
 
 #[async_trait]
@@ -17,11 +18,11 @@ pub trait TournamentService {
 }
 
 pub struct TournamentServiceImpl {
-    tournament_repository: Box<dyn TournamentRepository>,
+    tournament_repository: Arc<dyn TournamentRepository>,
 }
 
 impl TournamentServiceImpl {
-    pub fn new(tournament_repository: Box<dyn TournamentRepository>) -> Self {
+    pub fn new(tournament_repository: Arc<dyn TournamentRepository>) -> Self {
         Self {
             tournament_repository,
         }

@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use mockall::mock;
 use mongodb::bson::oid::ObjectId;
+use std::sync::Arc;
 
 use crate::error::Error;
 use crate::modules::opponents::{
@@ -54,7 +55,7 @@ async fn test_create_opponent_success() {
         .times(1)
         .returning(move |_| Ok(expected_clone.clone()));
 
-    let service = OpponentServiceImpl::new(Box::new(mock_repo));
+    let service = OpponentServiceImpl::new(Arc::new(mock_repo));
     let dto = create_test_dto();
     let user_id = ObjectId::new();
 
@@ -72,7 +73,7 @@ async fn test_create_opponent_success() {
 async fn test_create_opponent_empty_name() {
     // Arrange
     let mock_repo = MockOpponentRepo::new();
-    let service = OpponentServiceImpl::new(Box::new(mock_repo));
+    let service = OpponentServiceImpl::new(Arc::new(mock_repo));
     let mut dto = create_test_dto();
     dto.name = "   ".to_string();
 
@@ -93,7 +94,7 @@ async fn test_create_opponent_empty_name() {
 async fn test_create_opponent_empty_image_url() {
     // Arrange
     let mock_repo = MockOpponentRepo::new();
-    let service = OpponentServiceImpl::new(Box::new(mock_repo));
+    let service = OpponentServiceImpl::new(Arc::new(mock_repo));
     let mut dto = create_test_dto();
     dto.image_url = "   ".to_string();
 
@@ -119,7 +120,7 @@ async fn test_create_opponent_repository_error() {
         .times(1)
         .returning(|_| Err("Database connection failed".to_string()));
 
-    let service = OpponentServiceImpl::new(Box::new(mock_repo));
+    let service = OpponentServiceImpl::new(Arc::new(mock_repo));
     let dto = create_test_dto();
 
     // Act
@@ -144,7 +145,7 @@ async fn test_integration_create_opponent() {
     use crate::modules::opponents::repository::OpponentRepositoryImpl;
 
     let mongodb = MongoDB::init().await.expect("Failed to init MongoDB");
-    let service = OpponentServiceImpl::new(Box::new(OpponentRepositoryImpl::new(&mongodb.db)));
+    let service = OpponentServiceImpl::new(Arc::new(OpponentRepositoryImpl::new(&mongodb.db)));
     let dto = create_test_dto();
 
     let result = service.create_opponent(dto, ObjectId::new()).await;

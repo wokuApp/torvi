@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use mockall::mock;
 use mongodb::bson::oid::ObjectId;
+use std::sync::Arc;
 
 use crate::modules::users::model::User;
 use crate::modules::users::repository::UserRepository;
@@ -42,7 +43,7 @@ async fn test_create_user_success() {
         .times(1)
         .returning(|_| Ok(()));
 
-    let service = UserServiceImpl::new(Box::new(mock_repo));
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
 
     // Act
     let result = service
@@ -70,7 +71,7 @@ async fn test_create_user_email_already_exists() {
         .times(1)
         .returning(move |_| Ok(Some(existing_user.clone())));
 
-    let service = UserServiceImpl::new(Box::new(mock_repo));
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
 
     // Act
     let result = service
@@ -90,7 +91,7 @@ async fn test_create_user_email_already_exists() {
 async fn test_create_user_empty_email() {
     // Arrange
     let mock_repo = MockUserRepo::new();
-    let service = UserServiceImpl::new(Box::new(mock_repo));
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
 
     // Act
     let result = service
@@ -110,7 +111,7 @@ async fn test_create_user_empty_email() {
 async fn test_create_user_empty_password() {
     // Arrange
     let mock_repo = MockUserRepo::new();
-    let service = UserServiceImpl::new(Box::new(mock_repo));
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
 
     // Act
     let result = service
@@ -130,7 +131,7 @@ async fn test_create_user_empty_password() {
 async fn test_create_user_short_password() {
     // Arrange
     let mock_repo = MockUserRepo::new();
-    let service = UserServiceImpl::new(Box::new(mock_repo));
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
 
     // Act
     let result = service
@@ -159,7 +160,7 @@ async fn test_create_user_exactly_8_char_password() {
         .returning(|_| Ok(None));
     mock_repo.expect_create().times(1).returning(|_| Ok(()));
 
-    let service = UserServiceImpl::new(Box::new(mock_repo));
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
 
     // Act
     let result = service
@@ -186,7 +187,7 @@ async fn test_find_by_email_found() {
         .times(1)
         .returning(move |_| Ok(Some(user_clone.clone())));
 
-    let service = UserServiceImpl::new(Box::new(mock_repo));
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
 
     // Act
     let result = service.find_by_email("test@example.com").await;
@@ -207,7 +208,7 @@ async fn test_find_by_email_not_found() {
         .times(1)
         .returning(|_| Ok(None));
 
-    let service = UserServiceImpl::new(Box::new(mock_repo));
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
 
     // Act
     let result = service.find_by_email("nonexistent@example.com").await;
@@ -236,7 +237,7 @@ async fn test_verify_credentials_success() {
         .times(1)
         .returning(move |_| Ok(Some(user_clone.clone())));
 
-    let service = UserServiceImpl::new(Box::new(mock_repo));
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
 
     // Act
     let result = service
@@ -266,7 +267,7 @@ async fn test_verify_credentials_wrong_password() {
         .times(1)
         .returning(move |_| Ok(Some(user_clone.clone())));
 
-    let service = UserServiceImpl::new(Box::new(mock_repo));
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
 
     // Act
     let result = service
@@ -287,7 +288,7 @@ async fn test_verify_credentials_user_not_found() {
         .times(1)
         .returning(|_| Ok(None));
 
-    let service = UserServiceImpl::new(Box::new(mock_repo));
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
 
     // Act
     let result = service
@@ -312,7 +313,7 @@ async fn test_create_user_repository_error() {
         .times(1)
         .returning(|_| Err("Database connection failed".to_string()));
 
-    let service = UserServiceImpl::new(Box::new(mock_repo));
+    let service = UserServiceImpl::new(Arc::new(mock_repo));
 
     // Act
     let result = service
@@ -337,7 +338,7 @@ async fn test_integration_create_user_success() {
     use crate::modules::users::repository::UserRepositoryImpl;
 
     let mongodb = MongoDB::init().await.expect("Failed to init MongoDB");
-    let service = UserServiceImpl::new(Box::new(UserRepositoryImpl::new(&mongodb.db)));
+    let service = UserServiceImpl::new(Arc::new(UserRepositoryImpl::new(&mongodb.db)));
 
     let result = service
         .create_user(
@@ -360,7 +361,7 @@ async fn test_integration_find_by_email() {
     use crate::modules::users::repository::UserRepositoryImpl;
 
     let mongodb = MongoDB::init().await.expect("Failed to init MongoDB");
-    let service = UserServiceImpl::new(Box::new(UserRepositoryImpl::new(&mongodb.db)));
+    let service = UserServiceImpl::new(Arc::new(UserRepositoryImpl::new(&mongodb.db)));
 
     service
         .create_user(
@@ -383,7 +384,7 @@ async fn test_integration_verify_credentials() {
     use crate::modules::users::repository::UserRepositoryImpl;
 
     let mongodb = MongoDB::init().await.expect("Failed to init MongoDB");
-    let service = UserServiceImpl::new(Box::new(UserRepositoryImpl::new(&mongodb.db)));
+    let service = UserServiceImpl::new(Arc::new(UserRepositoryImpl::new(&mongodb.db)));
 
     service
         .create_user(

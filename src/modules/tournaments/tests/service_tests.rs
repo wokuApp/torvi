@@ -10,6 +10,7 @@ use async_trait::async_trait;
 use mockall::mock;
 use mongodb::bson::{oid::ObjectId, DateTime};
 use std::collections::HashMap;
+use std::sync::Arc;
 
 mock! {
     TournamentRepo {}
@@ -67,7 +68,7 @@ async fn test_create_tournament_success() {
     let mut mock_repo = MockTournamentRepo::new();
     mock_repo.expect_create().times(1).returning(|_| Ok(()));
 
-    let service = TournamentServiceImpl::new(Box::new(mock_repo));
+    let service = TournamentServiceImpl::new(Arc::new(mock_repo));
     let dto = create_test_tournament_dto();
 
     // Act
@@ -87,7 +88,7 @@ async fn test_create_tournament_success() {
 async fn test_create_tournament_invalid_name() {
     // Arrange
     let mock_repo = MockTournamentRepo::new();
-    let service = TournamentServiceImpl::new(Box::new(mock_repo));
+    let service = TournamentServiceImpl::new(Arc::new(mock_repo));
     let mut dto = create_test_tournament_dto();
     dto.name = "".to_string();
 
@@ -103,7 +104,7 @@ async fn test_create_tournament_invalid_name() {
 async fn test_create_tournament_insufficient_opponents() {
     // Arrange
     let mock_repo = MockTournamentRepo::new();
-    let service = TournamentServiceImpl::new(Box::new(mock_repo));
+    let service = TournamentServiceImpl::new(Arc::new(mock_repo));
     let mut dto = create_test_tournament_dto();
     dto.opponents = vec![OpponentDto {
         id: ObjectId::new(),
@@ -140,7 +141,7 @@ async fn test_vote_match_success() {
 
     mock_repo.expect_update().times(1).returning(|_| Ok(()));
 
-    let service = TournamentServiceImpl::new(Box::new(mock_repo));
+    let service = TournamentServiceImpl::new(Arc::new(mock_repo));
     let vote_dto = VoteMatchDto {
         tournament_id,
         match_id,
@@ -163,7 +164,7 @@ async fn test_vote_match_tournament_not_found() {
         .times(1)
         .returning(|_| Ok(None));
 
-    let service = TournamentServiceImpl::new(Box::new(mock_repo));
+    let service = TournamentServiceImpl::new(Arc::new(mock_repo));
     let user_id = ObjectId::new();
     let vote_dto = VoteMatchDto {
         tournament_id: ObjectId::new(),
@@ -200,7 +201,7 @@ async fn test_complete_tournament() {
 
     mock_repo.expect_update().times(1).returning(|_| Ok(()));
 
-    let service = TournamentServiceImpl::new(Box::new(mock_repo));
+    let service = TournamentServiceImpl::new(Arc::new(mock_repo));
     let vote_dto = VoteMatchDto {
         tournament_id,
         match_id,
@@ -244,7 +245,7 @@ async fn test_create_next_round() {
 
     mock_repo.expect_update().times(1).returning(|_| Ok(()));
 
-    let service = TournamentServiceImpl::new(Box::new(mock_repo));
+    let service = TournamentServiceImpl::new(Arc::new(mock_repo));
 
     let vote_dto = VoteMatchDto {
         tournament_id,
@@ -269,7 +270,7 @@ async fn test_integration_vote_persists_in_db() {
 
     let mongodb = MongoDB::init().await.expect("Failed to init MongoDB");
     let repo = TournamentRepositoryImpl::new(&mongodb.db);
-    let service = TournamentServiceImpl::new(Box::new(TournamentRepositoryImpl::new(&mongodb.db)));
+    let service = TournamentServiceImpl::new(Arc::new(TournamentRepositoryImpl::new(&mongodb.db)));
     let dto = create_test_tournament_dto();
     let tournament = service.create_tournament(dto).await.unwrap();
 

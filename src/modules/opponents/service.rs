@@ -3,6 +3,7 @@ use crate::modules::opponents::model::{CreateOpponentDto, Opponent};
 use crate::modules::opponents::repository::OpponentRepository;
 use async_trait::async_trait;
 use mongodb::bson::oid::ObjectId;
+use std::sync::Arc;
 
 #[async_trait]
 pub trait OpponentService: Send + Sync {
@@ -14,11 +15,11 @@ pub trait OpponentService: Send + Sync {
 }
 
 pub struct OpponentServiceImpl {
-    opponent_repository: Box<dyn OpponentRepository>,
+    opponent_repository: Arc<dyn OpponentRepository>,
 }
 
 impl OpponentServiceImpl {
-    pub fn new(opponent_repository: Box<dyn OpponentRepository>) -> Self {
+    pub fn new(opponent_repository: Arc<dyn OpponentRepository>) -> Self {
         Self { opponent_repository }
     }
 }

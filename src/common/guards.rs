@@ -1,13 +1,11 @@
+use std::sync::Arc;
+
 use mongodb::bson::oid::ObjectId;
 use rocket::http::Status;
 use rocket::request::{FromRequest, Outcome, Request};
 
-use crate::config::database::MongoDB;
-use crate::config::jwt::JwtConfig;
 use crate::error::Error;
-use crate::modules::auth::service::{AuthConfig, AuthService, AuthServiceImpl};
-use crate::modules::users::repository::UserRepositoryImpl;
-use crate::modules::users::service::UserServiceImpl;
+use crate::modules::auth::service::AuthService;
 
 #[derive(Debug)]
 pub struct AuthenticatedUser {
@@ -20,15 +18,17 @@ impl<'r> FromRequest<'r> for AuthenticatedUser {
     type Error = Error;
 
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
-        let jwt_config = request.rocket().state::<JwtConfig>();
-        let mongodb = request.rocket().state::<MongoDB>();
+        let auth_service =
+            request
+                .rocket()
+                .state::<Arc<dyn AuthService + Send + Sync>>();
 
-        let (jwt_config, mongodb) = match (jwt_config, mongodb) {
-            (Some(j), Some(m)) => (j, m),
-            _ => {
+        let auth_service = match auth_service {
+            Some(s) => s,
+            None => {
                 return Outcome::Error((
                     Status::InternalServerError,
-                    Error::Internal("Missing configuration".to_string()),
+                    Error::Internal("Missing auth service".to_string()),
                 ))
             }
         };
@@ -42,14 +42,6 @@ impl<'r> FromRequest<'r> for AuthenticatedUser {
                 ))
             }
         };
-
-        let user_service = UserServiceImpl::new(Box::new(UserRepositoryImpl::new(&mongodb.db)));
-        let auth_service = AuthServiceImpl::new(
-            Box::new(user_service),
-            AuthConfig {
-                jwt_secret: jwt_config.secret.clone(),
-            },
-        );
 
         match auth_service.verify_token(token) {
             Ok(claims) => {

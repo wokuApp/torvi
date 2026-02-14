@@ -2,6 +2,7 @@ use crate::modules::users::model::User;
 use crate::modules::users::repository::UserRepository;
 use async_trait::async_trait;
 use bcrypt::{hash, verify, DEFAULT_COST};
+use std::sync::Arc;
 
 #[async_trait]
 pub trait UserService: Send + Sync {
@@ -17,11 +18,11 @@ pub trait UserService: Send + Sync {
 }
 
 pub struct UserServiceImpl {
-    user_repository: Box<dyn UserRepository>,
+    user_repository: Arc<dyn UserRepository>,
 }
 
 impl UserServiceImpl {
-    pub fn new(user_repository: Box<dyn UserRepository>) -> Self {
+    pub fn new(user_repository: Arc<dyn UserRepository>) -> Self {
         Self { user_repository }
     }
 }

@@ -3,6 +3,7 @@ use crate::modules::users::service::UserService;
 use async_trait::async_trait;
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, DecodingKey, EncodingKey, Header, Validation};
+use std::sync::Arc;
 
 const ACCESS_TOKEN_DURATION_SECS: i64 = 900; // 15 minutes
 const REFRESH_TOKEN_DURATION_SECS: i64 = 604800; // 7 days
@@ -25,12 +26,12 @@ pub trait AuthService: Send + Sync {
 }
 
 pub struct AuthServiceImpl {
-    user_service: Box<dyn UserService + Send + Sync>,
+    user_service: Arc<dyn UserService + Send + Sync>,
     config: AuthConfig,
 }
 
 impl AuthServiceImpl {
-    pub fn new(user_service: Box<dyn UserService + Send + Sync>, config: AuthConfig) -> Self {
+    pub fn new(user_service: Arc<dyn UserService + Send + Sync>, config: AuthConfig) -> Self {
         Self {
             user_service,
             config,
@@ -209,7 +210,7 @@ mod tests {
     #[test]
     fn test_generate_token_includes_exp_and_iat() {
         let service = AuthServiceImpl::new(
-            Box::new(MockUserService { user: None }),
+            Arc::new(MockUserService { user: None }),
             AuthConfig {
                 jwt_secret: "test_secret_key_for_testing".to_string(),
             },
@@ -233,7 +234,7 @@ mod tests {
     #[test]
     fn test_generate_refresh_token() {
         let service = AuthServiceImpl::new(
-            Box::new(MockUserService { user: None }),
+            Arc::new(MockUserService { user: None }),
             AuthConfig {
                 jwt_secret: "test_secret_key_for_testing".to_string(),
             },
@@ -252,7 +253,7 @@ mod tests {
     #[test]
     fn test_refresh_tokens_with_valid_refresh_token() {
         let service = AuthServiceImpl::new(
-            Box::new(MockUserService { user: None }),
+            Arc::new(MockUserService { user: None }),
             AuthConfig {
                 jwt_secret: "test_secret_key_for_testing".to_string(),
             },
@@ -273,7 +274,7 @@ mod tests {
     #[test]
     fn test_refresh_tokens_rejects_access_token() {
         let service = AuthServiceImpl::new(
-            Box::new(MockUserService { user: None }),
+            Arc::new(MockUserService { user: None }),
             AuthConfig {
                 jwt_secret: "test_secret_key_for_testing".to_string(),
             },
@@ -291,7 +292,7 @@ mod tests {
     #[test]
     fn test_refresh_tokens_rejects_invalid_token() {
         let service = AuthServiceImpl::new(
-            Box::new(MockUserService { user: None }),
+            Arc::new(MockUserService { user: None }),
             AuthConfig {
                 jwt_secret: "test_secret_key_for_testing".to_string(),
             },
@@ -304,7 +305,7 @@ mod tests {
     #[test]
     fn test_verify_invalid_token_fails() {
         let service = AuthServiceImpl::new(
-            Box::new(MockUserService { user: None }),
+            Arc::new(MockUserService { user: None }),
             AuthConfig {
                 jwt_secret: "test_secret".to_string(),
             },
@@ -318,7 +319,7 @@ mod tests {
     async fn test_login_success() {
         let user = create_test_user();
         let service = AuthServiceImpl::new(
-            Box::new(MockUserService {
+            Arc::new(MockUserService {
                 user: Some(user.clone()),
             }),
             AuthConfig {
@@ -337,7 +338,7 @@ mod tests {
     #[tokio::test]
     async fn test_login_invalid_credentials() {
         let service = AuthServiceImpl::new(
-            Box::new(MockUserService { user: None }),
+            Arc::new(MockUserService { user: None }),
             AuthConfig {
                 jwt_secret: "test_secret".to_string(),
             },
