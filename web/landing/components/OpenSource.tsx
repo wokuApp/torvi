@@ -12,7 +12,7 @@ export function OpenSource() {
     <section id="open-source" className="bg-white px-4 py-20">
       <div className="mx-auto max-w-3xl text-center">
         <FadeInSection>
-          <h2 className="mb-6 text-3xl font-bold text-gray-900 md:text-4xl">
+          <h2 className="mb-6 text-3xl font-bold text-balance text-gray-900 md:text-4xl">
             {t.openSource.title}
           </h2>
           <p className="mb-8 text-lg text-gray-600 text-balance">

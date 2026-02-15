@@ -11,7 +11,7 @@ export function HeroSection() {
     <section className="relative overflow-hidden px-4 pt-24 md:pt-32 pb-16 md:pb-20">
       <div className="mx-auto max-w-4xl text-center">
         <motion.h1
-          className="text-4xl font-bold tracking-tight text-gray-900 md:text-6xl"
+          className="text-4xl font-bold tracking-tight text-balance text-gray-900 md:text-6xl"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
@@ -20,7 +20,7 @@ export function HeroSection() {
         </motion.h1>
 
         <motion.p
-          className="mx-auto mt-6 max-w-2xl text-lg text-gray-600"
+          className="mx-auto mt-6 max-w-2xl text-lg text-balance text-gray-600"
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}

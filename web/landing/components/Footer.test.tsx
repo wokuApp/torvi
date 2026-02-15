@@ -22,12 +22,12 @@ describe('Footer', () => {
     expect(screen.getByText(/Hecho por/)).toBeInTheDocument()
   })
 
-  it('renders GitHub link', () => {
+  it('renders Woku link', () => {
     renderFooter()
-    const link = screen.getByLabelText('GitHub')
+    const link = screen.getByText('Woku')
     expect(link).toHaveAttribute(
       'href',
-      'https://github.com/wokuApp/torvi'
+      'https://github.com/wokuApp'
     )
   })
 })

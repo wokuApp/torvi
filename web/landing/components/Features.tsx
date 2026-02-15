@@ -20,7 +20,7 @@ export function Features() {
     <section id="caracteristicas" className="px-4 py-20">
       <div className="mx-auto max-w-6xl">
         <FadeInSection>
-          <h2 className="mb-12 text-center text-3xl font-bold text-gray-900 md:text-4xl">
+          <h2 className="mb-12 text-center text-3xl font-bold text-balance text-gray-900 md:text-4xl">
             {t.features.title}
           </h2>
         </FadeInSection>
@@ -37,7 +37,7 @@ export function Features() {
                   <h3 className="mb-2 text-lg font-semibold text-gray-900">
                     {item.title}
                   </h3>
-                  <p className="text-sm text-gray-600">{item.desc}</p>
+                  <p className="text-sm text-balance text-gray-600">{item.desc}</p>
                 </div>
               </FadeInSection>
             );
