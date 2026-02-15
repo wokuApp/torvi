@@ -65,7 +65,7 @@ const RoundColumn = ({
 );
 
 const WinnerCard = () => (
-  <div className="flex flex-col items-center justify-center">
+  <div className="flex flex-col items-center justify-center mb-6 md:mb-8">
     <motion.div
       initial={{ opacity: 0, scale: 0.5 }}
       whileInView={{ opacity: 1, scale: 1 }}
