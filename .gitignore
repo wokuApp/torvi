@@ -8,3 +8,6 @@ web/landing/out
 web/landing/.next
 web/app/dist
 web/app/tsconfig.tsbuildinfo
+
+# prompts
+dev
