@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { RouterProvider } from 'react-router'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { LanguageProvider } from '@/i18n/LanguageContext'
+import { ErrorBoundary } from '@/components/ui/ErrorBoundary'
 import { router } from '@/router/routes'
 
 const queryClient = new QueryClient({
@@ -16,11 +17,13 @@ const queryClient = new QueryClient({
 // Root application component with all providers
 const App = (): ReactNode => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <LanguageProvider>
-        <RouterProvider router={router} />
-      </LanguageProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <LanguageProvider>
+          <RouterProvider router={router} />
+        </LanguageProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   )
 }
 

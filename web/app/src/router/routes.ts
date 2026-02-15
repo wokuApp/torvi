@@ -9,7 +9,7 @@ import { ResultsPage } from '@/modules/Tournament/pages/ResultsPage'
 import { ProtectedRoute } from './ProtectedRoute'
 import { GuestRoute } from './GuestRoute'
 import { JoinPage } from '@/modules/Invite/pages/JoinPage'
-import { NotFoundPage } from './placeholders'
+import { NotFoundPage } from '@/components/ui/NotFound/NotFoundPage'
 
 export const router = createBrowserRouter([
   {
