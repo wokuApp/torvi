@@ -13,37 +13,17 @@ function renderNavbar() {
 }
 
 describe('Navbar', () => {
-  it('renders logo and navigation links', () => {
+  it('renders logo', () => {
     renderNavbar()
     expect(screen.getByText('Torvi')).toBeInTheDocument()
-    expect(screen.getByText('Cómo funciona')).toBeInTheDocument()
-    expect(screen.getByText('Características')).toBeInTheDocument()
-    expect(screen.getByText('Open Source')).toBeInTheDocument()
-  })
-
-  it('has correct href anchors on nav links', () => {
-    renderNavbar()
-    expect(screen.getByText('Cómo funciona').closest('a')).toHaveAttribute(
-      'href',
-      '#como-funciona'
-    )
-    expect(screen.getByText('Características').closest('a')).toHaveAttribute(
-      'href',
-      '#caracteristicas'
-    )
-    expect(screen.getByText('Open Source').closest('a')).toHaveAttribute(
-      'href',
-      '#open-source'
-    )
   })
 
   it('toggles language between ES and EN', async () => {
     const user = userEvent.setup()
     renderNavbar()
-    expect(screen.getByText('Cómo funciona')).toBeInTheDocument()
+    expect(screen.getByText('Empezar gratis')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: /ES/i }))
-    expect(screen.getByText('How it works')).toBeInTheDocument()
-    expect(screen.getByText('Features')).toBeInTheDocument()
+    expect(screen.getByText('Get started free')).toBeInTheDocument()
   })
 
   it('renders CTA button', () => {
@@ -56,7 +36,7 @@ describe('Navbar', () => {
     renderNavbar()
     const menuButton = screen.getByLabelText('Toggle menu')
     await user.click(menuButton)
-    const mobileLinks = screen.getAllByText('Cómo funciona')
-    expect(mobileLinks.length).toBeGreaterThanOrEqual(2)
+    const ctaButtons = screen.getAllByText('Empezar gratis')
+    expect(ctaButtons.length).toBeGreaterThanOrEqual(2)
   })
 })

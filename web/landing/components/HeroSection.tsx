@@ -8,7 +8,7 @@ export function HeroSection() {
   const { t } = useLanguage();
 
   return (
-    <section className="relative overflow-hidden px-4 py-24 md:py-32">
+    <section className="relative overflow-hidden px-4 pt-24 md:pt-32 pb-16 md:pb-20">
       <div className="mx-auto max-w-4xl text-center">
         <motion.h1
           className="text-4xl font-bold tracking-tight text-gray-900 md:text-6xl"

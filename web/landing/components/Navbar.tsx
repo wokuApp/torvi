@@ -11,12 +11,6 @@ export function Navbar() {
 
   const toggleLang = () => setLang(lang === 'es' ? 'en' : 'es')
 
-  const navLinks = [
-    { label: t.nav.howItWorks, href: '#como-funciona' },
-    { label: t.nav.features, href: '#caracteristicas' },
-    { label: t.nav.openSource, href: '#open-source' },
-  ]
-
   return (
     <nav className="sticky top-0 z-50 border-b border-white/10 bg-white/80 backdrop-blur-md">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3">
@@ -27,16 +21,6 @@ export function Navbar() {
 
         {/* Desktop nav */}
         <div className="hidden items-center gap-6 md:flex">
-          {navLinks.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
-            >
-              {link.label}
-            </a>
-          ))}
-
           <button
             onClick={toggleLang}
             className="flex items-center gap-1 rounded-md px-2 py-1 text-sm text-gray-600 transition-colors hover:bg-gray-100"
@@ -66,16 +50,6 @@ export function Navbar() {
       {mobileOpen && (
         <div className="border-t border-gray-100 bg-white px-4 pb-4 md:hidden">
           <div className="flex flex-col gap-3 pt-3">
-            {navLinks.map((link) => (
-              <a
-                key={link.href}
-                href={link.href}
-                className="text-sm font-medium text-gray-600"
-                onClick={() => setMobileOpen(false)}
-              >
-                {link.label}
-              </a>
-            ))}
             <button
               onClick={toggleLang}
               className="flex items-center gap-1 text-sm text-gray-600"
