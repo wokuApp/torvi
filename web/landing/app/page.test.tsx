@@ -32,7 +32,7 @@ describe('Home page', () => {
   it('renders hero headline', () => {
     renderPage()
     expect(
-      screen.getByText('Deja que las mejores ideas ganen.')
+      screen.getByText('Deja que las mejores ideas ganen')
     ).toBeInTheDocument()
   })
 })

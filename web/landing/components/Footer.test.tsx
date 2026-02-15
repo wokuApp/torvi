@@ -14,7 +14,7 @@ function renderFooter() {
 describe('Footer', () => {
   it('renders copyright text', () => {
     renderFooter()
-    expect(screen.getByText(/© 2025 Torvi/)).toBeInTheDocument()
+    expect(screen.getByText(/© 2026 woku/)).toBeInTheDocument()
   })
 
   it('renders "made by" text', () => {

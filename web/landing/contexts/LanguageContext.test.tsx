@@ -25,7 +25,7 @@ describe('LanguageContext', () => {
     )
     expect(screen.getByTestId('lang')).toHaveTextContent('es')
     expect(screen.getByTestId('headline')).toHaveTextContent(
-      'Deja que las mejores ideas ganen.'
+      'Deja que las mejores ideas ganen'
     )
   })
 
@@ -39,7 +39,7 @@ describe('LanguageContext', () => {
     await user.click(screen.getByText('Toggle'))
     expect(screen.getByTestId('lang')).toHaveTextContent('en')
     expect(screen.getByTestId('headline')).toHaveTextContent(
-      'Let the best ideas win.'
+      'Let the best ideas win'
     )
   })
 

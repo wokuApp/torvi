@@ -12,7 +12,7 @@ describe('HeroSection', () => {
   it('renders headline in current language', () => {
     render(<HeroSection />, { wrapper: TestWrapper })
     expect(
-      screen.getByText('Deja que las mejores ideas ganen.')
+      screen.getByText('Deja que las mejores ideas ganen')
     ).toBeInTheDocument()
   })
 
@@ -42,7 +42,7 @@ describe('HeroSection', () => {
     )
     await user.click(screen.getByText('toggle'))
     expect(
-      screen.getByText('Let the best ideas win.')
+      screen.getByText('Let the best ideas win')
     ).toBeInTheDocument()
   })
 
