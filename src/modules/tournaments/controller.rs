@@ -233,6 +233,19 @@ pub async fn join_tournament(
     Ok(Json(response))
 }
 
+#[post("/join-by-code", data = "<join_dto>")]
+pub async fn join_by_code(
+    service: &State<Arc<dyn TournamentService + Send + Sync>>,
+    join_dto: Json<JoinTournamentDto>,
+) -> Result<Json<JoinTournamentResponse>, Error> {
+    let response = service
+        .join_by_code(join_dto.into_inner())
+        .await
+        .map_err(|e| Error::BadRequest(e))?;
+
+    Ok(Json(response))
+}
+
 pub fn routes() -> Vec<rocket::Route> {
     routes![
         create,
@@ -247,6 +260,7 @@ pub fn routes() -> Vec<rocket::Route> {
         match_detail,
         vote_match,
         create_invite,
-        join_tournament
+        join_tournament,
+        join_by_code
     ]
 }

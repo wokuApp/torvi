@@ -1,4 +1,6 @@
-use crate::common::json::{serialize_datetime, serialize_oid, serialize_option_datetime};
+use crate::common::json::{
+    deserialize_oid, serialize_datetime, serialize_oid, serialize_option_datetime,
+};
 use mongodb::bson::{doc, oid::ObjectId, DateTime};
 use serde::{Deserialize, Serialize};
 
@@ -50,7 +52,9 @@ impl Opponent {
 #[derive(Debug, Deserialize)]
 pub struct CreateOpponentDto {
     pub name: String,
+    #[serde(deserialize_with = "deserialize_oid")]
     pub created_by: ObjectId,
+    #[serde(deserialize_with = "deserialize_oid")]
     pub image_id: ObjectId,
     pub image_url: String,
 }

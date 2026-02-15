@@ -1,5 +1,12 @@
-use mongodb::bson::{oid::ObjectId, DateTime};
-use serde::{Serialize, Serializer};
+use mongodb::bson::oid::ObjectId;
+use mongodb::bson::DateTime;
+use serde::{de, Deserialize, Deserializer, Serialize, Serializer};
+
+/// Deserialize an ObjectId from a hex string (e.g. "507f1f77bcf86cd799439011")
+pub fn deserialize_oid<'de, D: Deserializer<'de>>(d: D) -> Result<ObjectId, D::Error> {
+    let s = String::deserialize(d)?;
+    ObjectId::parse_str(&s).map_err(de::Error::custom)
+}
 
 pub fn serialize_oid<S: Serializer>(oid: &ObjectId, s: S) -> Result<S::Ok, S::Error> {
     s.serialize_str(&oid.to_hex())

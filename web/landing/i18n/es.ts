@@ -6,7 +6,7 @@ export const es = {
     cta: 'Empezar gratis',
   },
   hero: {
-    headline: 'Deja que las mejores ideas ganen.',
+    headline: 'Deja que las mejores ideas ganen',
     subtitle:
       'Torvi organiza torneos de eliminación directa donde tu equipo vota imagen vs imagen hasta encontrar la idea ganadora. Simple, visual y divertido.',
     createTournament: 'Crear un torneo',
@@ -66,6 +66,6 @@ export const es = {
   },
   footer: {
     madeBy: 'Hecho por',
-    license: '© 2025 Torvi. MIT License.',
+    license: '© 2026 woku. MIT License.',
   },
-} as const
+} as const;

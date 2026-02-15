@@ -6,7 +6,7 @@ export const en = {
     cta: 'Get started free',
   },
   hero: {
-    headline: 'Let the best ideas win.',
+    headline: 'Let the best ideas win',
     subtitle:
       'Torvi runs single-elimination tournaments where your team votes image vs image until you find the winning idea. Simple, visual, and fun.',
     createTournament: 'Create a tournament',
@@ -66,6 +66,6 @@ export const en = {
   },
   footer: {
     madeBy: 'Made by',
-    license: '© 2025 Torvi. MIT License.',
+    license: '© 2026 woku. MIT License.',
   },
-} as const
+} as const;

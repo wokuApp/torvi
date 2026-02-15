@@ -18,11 +18,7 @@ export const JoinPage = (): ReactNode => {
     invite_code: string
     display_name: string
   }): void => {
-    // tournament_id will be resolved by the backend from invite_code
-    mutation.mutate({
-      ...data,
-      tournament_id: 'from-invite',
-    })
+    mutation.mutate(data)
   }
 
   return (

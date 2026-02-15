@@ -1,14 +1,14 @@
-'use client'
+'use client';
 
-import { motion } from 'motion/react'
-import { Button } from '@torvi/ui'
-import { useLanguage } from '@/contexts/LanguageContext'
+import { motion } from 'motion/react';
+import { Button } from '@torvi/ui';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export function HeroSection() {
-  const { t } = useLanguage()
+  const { t } = useLanguage();
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-orange-50 to-white px-4 py-24 md:py-32">
+    <section className="relative overflow-hidden px-4 py-24 md:py-32">
       <div className="mx-auto max-w-4xl text-center">
         <motion.h1
           className="text-4xl font-bold tracking-tight text-gray-900 md:text-6xl"
@@ -39,5 +39,5 @@ export function HeroSection() {
         </motion.div>
       </div>
     </section>
-  )
+  );
 }

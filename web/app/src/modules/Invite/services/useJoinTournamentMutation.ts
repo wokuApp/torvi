@@ -6,29 +6,33 @@ import type {
 } from '@/services/torvi/types'
 import { useAuthStore } from '@/stores/authStore'
 
-// POST /api/tournaments/:id/join
+// POST /api/tournaments/join-by-code (resolves tournament from invite code)
 const joinTournament = async (
-  dto: JoinTournamentDto & { tournament_id: string }
+  dto: JoinTournamentDto
 ): Promise<JoinTournamentResponse> => {
-  const { tournament_id, ...body } = dto
   const { data } = await apiClient.post<JoinTournamentResponse>(
-    `/api/tournaments/${tournament_id}/join`,
-    body
+    '/api/tournaments/join-by-code',
+    dto
   )
   return data
 }
 
 // Joins a tournament and stores the anonymous access token
 export const useJoinTournamentMutation = () => {
-  const setTokens = useAuthStore((s) => s.setTokens)
+  const store = useAuthStore.getState
 
   return useMutation({
     mutationFn: joinTournament,
     onSuccess: (data) => {
-      setTokens({
+      store().setAuth({
         access_token: data.access_token,
         refresh_token: '',
         token_type: data.token_type ?? 'Bearer',
+        user: {
+          id: data.session_id,
+          email: '',
+          name: data.display_name,
+        },
       })
     },
   })

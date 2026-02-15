@@ -1,5 +1,5 @@
 use crate::common::json::{
-    serialize_datetime, serialize_oid, serialize_option_oid, serialize_vec_oid,
+    deserialize_oid, serialize_datetime, serialize_oid, serialize_option_oid, serialize_vec_oid,
 };
 use mongodb::bson::{doc, oid::ObjectId, DateTime};
 use serde::{Deserialize, Serialize};
@@ -124,12 +124,14 @@ pub struct CreateTournamentDto {
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct OpponentDto {
+    #[serde(deserialize_with = "deserialize_oid")]
     pub id: ObjectId,
     pub url: String,
 }
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct UserDto {
+    #[serde(deserialize_with = "deserialize_oid")]
     pub id: ObjectId,
     pub name: String,
 }
@@ -253,8 +255,10 @@ pub struct UpdateTournamentDto {
 
 #[derive(Debug, Deserialize)]
 pub struct VoteMatchDto {
+    #[serde(deserialize_with = "deserialize_oid")]
     pub tournament_id: ObjectId,
     pub match_id: String,
+    #[serde(deserialize_with = "deserialize_oid")]
     pub voted_for: ObjectId,
 }
 

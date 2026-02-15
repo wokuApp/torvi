@@ -1,4 +1,4 @@
-use crate::common::json::serialize_oid;
+use crate::common::json::{deserialize_oid, serialize_oid};
 use crate::modules::users::model::User;
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
@@ -63,6 +63,7 @@ pub struct AnonymousClaims {
 
 #[derive(Debug, Deserialize)]
 pub struct AnonymousTokenRequest {
+    #[serde(deserialize_with = "deserialize_oid")]
     pub tournament_id: ObjectId,
     pub display_name: String,
 }

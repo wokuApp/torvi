@@ -67,6 +67,10 @@ pub trait TournamentService: Send + Sync {
         tournament_id: &ObjectId,
         dto: JoinTournamentDto,
     ) -> Result<JoinTournamentResponse, String>;
+    async fn join_by_code(
+        &self,
+        dto: JoinTournamentDto,
+    ) -> Result<JoinTournamentResponse, String>;
 }
 
 pub struct TournamentServiceImpl {
@@ -588,5 +592,19 @@ impl TournamentService for TournamentServiceImpl {
             display_name: dto.display_name,
             tournament_id: *tournament_id,
         })
+    }
+
+    async fn join_by_code(
+        &self,
+        dto: JoinTournamentDto,
+    ) -> Result<JoinTournamentResponse, String> {
+        let invite = self
+            .invite_repository
+            .find_by_code(&dto.invite_code)
+            .await
+            .map_err(|e| format!("Error finding invite: {}", e))?
+            .ok_or("Invalid invite code")?;
+
+        self.join_tournament(&invite.tournament_id, dto).await
     }
 }
