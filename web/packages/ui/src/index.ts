@@ -1,3 +1,6 @@
 export { Button } from './Button'
 export type { ButtonProps } from './Button'
 export { FadeInSection } from './FadeInSection'
+export { ErrorBoundary } from './ErrorBoundary'
+export { Toast } from './Toast'
+export { default as WokuLogo } from './WokuLogo'
