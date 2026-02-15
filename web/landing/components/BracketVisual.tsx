@@ -3,68 +3,87 @@
 import { motion } from 'motion/react'
 import { ImageIcon, Trophy } from 'lucide-react'
 
-function Slot({ delay }: { delay: number }) {
-  return (
-    <motion.div
-      className="flex h-12 w-12 items-center justify-center rounded-lg border border-gray-200 bg-white shadow-sm"
-      initial={{ opacity: 0, scale: 0.8 }}
-      whileInView={{ opacity: 1, scale: 1 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.4, delay }}
-    >
-      <ImageIcon className="h-5 w-5 text-gray-400" />
-    </motion.div>
-  )
+const BRACKET = {
+  round1: ['Idea 1', 'Idea 2', 'Idea 3', 'Idea 4', 'Idea 5', 'Idea 6', 'Idea 7', 'Idea 8'],
+  round2: ['Idea 2', 'Idea 3', 'Idea 6', 'Idea 7'],
+  semis: ['Idea 3', 'Idea 6'],
+  winner: 'Idea 3',
 }
 
-function Round({
-  label,
-  slots,
+const IdeaCard = ({ name, delay }: { name: string; delay: number }) => (
+  <motion.div
+    className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm"
+    initial={{ opacity: 0, x: -10 }}
+    whileInView={{ opacity: 1, x: 0 }}
+    viewport={{ once: true }}
+    transition={{ duration: 0.3, delay }}
+  >
+    <ImageIcon className="h-4 w-4 shrink-0 text-gray-400" />
+    <span className="whitespace-nowrap text-sm text-gray-600">{name}</span>
+  </motion.div>
+)
+
+const Connector = ({ delay }: { delay: number }) => (
+  <motion.div
+    className="flex items-center justify-center self-center"
+    initial={{ opacity: 0 }}
+    whileInView={{ opacity: 1 }}
+    viewport={{ once: true }}
+    transition={{ duration: 0.3, delay }}
+  >
+    <span className="text-lg font-light text-gray-300">+</span>
+  </motion.div>
+)
+
+const RoundColumn = ({
+  ideas,
   baseDelay,
 }: {
-  label: string
-  slots: number
+  ideas: string[]
   baseDelay: number
-}) {
-  return (
-    <div className="flex flex-col items-center gap-2">
-      <span className="mb-2 text-xs font-semibold text-gray-500 uppercase">
-        {label}
-      </span>
-      <div className="flex flex-col items-center justify-center gap-4">
-        {Array.from({ length: slots }).map((_, i) => (
-          <Slot key={i} delay={baseDelay + i * 0.1} />
-        ))}
-      </div>
-    </div>
-  )
-}
+}) => (
+  <div className="flex h-full flex-col justify-around">
+    {ideas.map((name, i) => (
+      <IdeaCard key={name} name={name} delay={baseDelay + i * 0.05} />
+    ))}
+  </div>
+)
 
-export function BracketVisual() {
-  return (
-    <div
-      data-testid="bracket"
-      className="mx-auto mt-16 flex max-w-2xl items-center justify-center gap-8 overflow-x-auto px-4"
-    >
-      <Round label="Round 1" slots={4} baseDelay={0} />
-      <Round label="Semis" slots={2} baseDelay={0.4} />
-      <Round label="Final" slots={1} baseDelay={0.7} />
+export const BracketVisual = () => (
+  <div
+    data-testid="bracket"
+    className="mx-auto mt-16 flex h-[480px] max-w-3xl items-stretch justify-center gap-4 overflow-x-auto px-4"
+  >
+    <RoundColumn ideas={BRACKET.round1} baseDelay={0} />
+    <Connector delay={0.3} />
+    <RoundColumn ideas={BRACKET.round2} baseDelay={0.3} />
+    <Connector delay={0.5} />
+    <RoundColumn ideas={BRACKET.semis} baseDelay={0.5} />
+    <Connector delay={0.7} />
 
-      <div className="flex flex-col items-center gap-2">
-        <span className="mb-2 text-xs font-semibold text-orange-600 uppercase">
-          Winner
+    <div className="flex h-full flex-col items-center justify-center">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.5 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5, delay: 0.9 }}
+        className="mb-1"
+      >
+        <Trophy className="h-5 w-5 text-orange-500" />
+      </motion.div>
+      <motion.div
+        data-testid="winner"
+        className="flex items-center gap-2 rounded-xl border-2 border-orange-400 bg-orange-50 px-4 py-2.5 shadow-md"
+        initial={{ opacity: 0, scale: 0.5 }}
+        whileInView={{ opacity: 1, scale: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.5, delay: 0.9 }}
+      >
+        <ImageIcon className="h-4 w-4 shrink-0 text-orange-400" />
+        <span className="whitespace-nowrap text-sm font-medium text-orange-600">
+          {BRACKET.winner}
         </span>
-        <motion.div
-          data-testid="winner"
-          className="flex h-14 w-14 items-center justify-center rounded-xl border-2 border-orange-400 bg-orange-50 shadow-md"
-          initial={{ opacity: 0, scale: 0.5 }}
-          whileInView={{ opacity: 1, scale: 1 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.9 }}
-        >
-          <Trophy className="h-6 w-6 text-orange-500" />
-        </motion.div>
-      </div>
+      </motion.div>
     </div>
-  )
-}
+  </div>
+)

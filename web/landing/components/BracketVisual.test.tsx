@@ -8,11 +8,11 @@ describe('BracketVisual', () => {
     expect(container.querySelector('[data-testid="bracket"]')).toBeInTheDocument()
   })
 
-  it('renders round labels', () => {
+  it('renders all 8 ideas in round 1', () => {
     render(<BracketVisual />)
-    expect(screen.getByText('Round 1')).toBeInTheDocument()
-    expect(screen.getByText('Semis')).toBeInTheDocument()
-    expect(screen.getByText('Final')).toBeInTheDocument()
+    for (let i = 1; i <= 8; i++) {
+      expect(screen.getAllByText(`Idea ${i}`).length).toBeGreaterThanOrEqual(1)
+    }
   })
 
   it('renders trophy for winner slot', () => {
