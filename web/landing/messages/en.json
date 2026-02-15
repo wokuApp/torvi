@@ -1,0 +1,45 @@
+{
+  "Nav": {
+    "cta": "Get started free"
+  },
+  "Hero": {
+    "headline": "Let the best ideas win",
+    "subtitle": "Torvi runs single-elimination tournaments where your team votes image vs image until you find the winning idea. Simple, visual, and fun.",
+    "createTournament": "Create a tournament",
+    "seeHow": "See how it works"
+  },
+  "HowItWorks": {
+    "title": "How it works",
+    "stepLabel": "Step",
+    "step1Title": "Upload your ideas",
+    "step1Desc": "Each participant uploads images representing their ideas or proposals.",
+    "step2Title": "The bracket is built",
+    "step2Desc": "Torvi automatically generates a single-elimination tournament with all the ideas.",
+    "step3Title": "The team votes",
+    "step3Desc": "Each round, the team chooses between two ideas until a winner is crowned."
+  },
+  "Features": {
+    "title": "Features",
+    "item1Title": "Visual tournaments",
+    "item1Desc": "Ideas compete image vs image in single-elimination brackets.",
+    "item2Title": "Real-time voting",
+    "item2Desc": "Live results via WebSocket. Watch the tournament progress instantly.",
+    "item3Title": "Invite your team",
+    "item3Desc": "Share an invite link. Participants join with a code, zero friction.",
+    "item4Title": "Anonymous voting",
+    "item4Desc": "Voters can participate anonymously for more honest decisions.",
+    "item5Title": "Clear results",
+    "item5Desc": "Full visual bracket with the history of each round and the winning idea.",
+    "item6Title": "Open API",
+    "item6Desc": "High-performance Rust backend. Integrate Torvi into your own workflow."
+  },
+  "OpenSource": {
+    "title": "Open Source",
+    "desc": "Torvi is open source, built with Rust and Rocket.rs. Contribute, deploy your own instance, or use it as a base for your project.",
+    "github": "View on GitHub"
+  },
+  "Footer": {
+    "madeBy": "Made by",
+    "license": "© 2026 woku. MIT License."
+  }
+}

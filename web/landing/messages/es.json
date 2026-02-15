@@ -1,0 +1,45 @@
+{
+  "Nav": {
+    "cta": "Empezar gratis"
+  },
+  "Hero": {
+    "headline": "Deja que las mejores ideas ganen",
+    "subtitle": "Torvi organiza torneos de eliminación directa donde tu equipo vota imagen vs imagen hasta encontrar la idea ganadora. Simple, visual y divertido.",
+    "createTournament": "Crear un torneo",
+    "seeHow": "Ver cómo funciona"
+  },
+  "HowItWorks": {
+    "title": "Cómo funciona",
+    "stepLabel": "Paso",
+    "step1Title": "Sube tus ideas",
+    "step1Desc": "Cada participante sube imágenes que representan sus ideas o propuestas.",
+    "step2Title": "Se arma el bracket",
+    "step2Desc": "Torvi genera automáticamente un torneo de eliminación directa con todas las ideas.",
+    "step3Title": "El equipo vota",
+    "step3Desc": "En cada ronda, el equipo elige entre dos ideas hasta coronar a la ganadora."
+  },
+  "Features": {
+    "title": "Características",
+    "item1Title": "Torneos visuales",
+    "item1Desc": "Ideas compiten imagen vs imagen en brackets de eliminación directa.",
+    "item2Title": "Votación en tiempo real",
+    "item2Desc": "Resultados en vivo vía WebSocket. Ve cómo avanza el torneo al instante.",
+    "item3Title": "Invita a tu equipo",
+    "item3Desc": "Comparte un link de invitación. Los participantes se unen con un código, sin fricción.",
+    "item4Title": "Votación anónima",
+    "item4Desc": "Los votantes pueden participar de forma anónima para decisiones más honestas.",
+    "item5Title": "Resultados claros",
+    "item5Desc": "Bracket visual completo con el historial de cada ronda y la idea ganadora.",
+    "item6Title": "API abierta",
+    "item6Desc": "Backend en Rust de alto rendimiento. Integra Torvi en tu propio flujo de trabajo."
+  },
+  "OpenSource": {
+    "title": "Open Source",
+    "desc": "Torvi es open source, construido con Rust y Rocket.rs. Contribuye, despliega tu propia instancia, o úsalo como base para tu proyecto.",
+    "github": "Ver en GitHub"
+  },
+  "Footer": {
+    "madeBy": "Hecho por",
+    "license": "© 2026 woku. MIT License."
+  }
+}

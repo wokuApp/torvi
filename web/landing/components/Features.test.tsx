@@ -1,29 +1,20 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
-import { LanguageProvider } from '@/contexts/LanguageContext'
 import { Features } from './Features'
-
-function renderSection() {
-  return render(
-    <LanguageProvider>
-      <Features />
-    </LanguageProvider>
-  )
-}
 
 describe('Features', () => {
   it('has correct section id', () => {
-    const { container } = renderSection()
+    const { container } = render(<Features />)
     expect(container.querySelector('#caracteristicas')).toBeInTheDocument()
   })
 
   it('renders section title', () => {
-    renderSection()
+    render(<Features />)
     expect(screen.getByText('Características')).toBeInTheDocument()
   })
 
   it('renders all six feature cards', () => {
-    renderSection()
+    render(<Features />)
     expect(screen.getByText('Torneos visuales')).toBeInTheDocument()
     expect(screen.getByText('Votación en tiempo real')).toBeInTheDocument()
     expect(screen.getByText('Invita a tu equipo')).toBeInTheDocument()
@@ -33,7 +24,7 @@ describe('Features', () => {
   })
 
   it('each card has title and description', () => {
-    renderSection()
+    render(<Features />)
     expect(
       screen.getByText(/Ideas compiten imagen vs imagen/)
     ).toBeInTheDocument()

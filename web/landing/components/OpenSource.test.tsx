@@ -1,24 +1,15 @@
 import { render, screen } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
-import { LanguageProvider } from '@/contexts/LanguageContext'
 import { OpenSource } from './OpenSource'
-
-function renderSection() {
-  return render(
-    <LanguageProvider>
-      <OpenSource />
-    </LanguageProvider>
-  )
-}
 
 describe('OpenSource', () => {
   it('has correct section id', () => {
-    const { container } = renderSection()
+    const { container } = render(<OpenSource />)
     expect(container.querySelector('#open-source')).toBeInTheDocument()
   })
 
   it('renders GitHub link with correct URL', () => {
-    renderSection()
+    render(<OpenSource />)
     const link = screen.getByText('Ver en GitHub').closest('a')
     expect(link).toHaveAttribute(
       'href',
@@ -27,7 +18,7 @@ describe('OpenSource', () => {
   })
 
   it('renders translated content', () => {
-    renderSection()
+    render(<OpenSource />)
     expect(screen.getByText('Open Source')).toBeInTheDocument()
     expect(screen.getByText(/Torvi es open source/)).toBeInTheDocument()
   })

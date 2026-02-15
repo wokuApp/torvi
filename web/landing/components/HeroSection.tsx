@@ -2,10 +2,10 @@
 
 import { motion } from 'motion/react';
 import { Button } from '@torvi/ui';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslations } from 'next-intl';
 
 export function HeroSection() {
-  const { t } = useLanguage();
+  const t = useTranslations('Hero');
 
   return (
     <section className="relative overflow-hidden px-4 pt-24 md:pt-32 pb-16 md:pb-20">
@@ -16,7 +16,7 @@ export function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6 }}
         >
-          {t.hero.headline}
+          {t('headline')}
         </motion.h1>
 
         <motion.p
@@ -25,7 +25,7 @@ export function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
         >
-          {t.hero.subtitle}
+          {t('subtitle')}
         </motion.p>
 
         <motion.div
@@ -34,8 +34,8 @@ export function HeroSection() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.4 }}
         >
-          <Button variant="primary">{t.hero.createTournament}</Button>
-          <Button variant="outline">{t.hero.seeHow}</Button>
+          <Button variant="primary">{t('createTournament')}</Button>
+          <Button variant="outline">{t('seeHow')}</Button>
         </motion.div>
       </div>
     </section>

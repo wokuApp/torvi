@@ -1,10 +1,10 @@
 'use client';
 
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useTranslations } from 'next-intl';
 import { WokuLogo } from '@torvi/ui';
 
 export function Footer() {
-  const { t } = useLanguage();
+  const t = useTranslations('Footer');
 
   return (
     <footer className="border-t border-gray-100 bg-white px-4 py-8">
@@ -19,7 +19,7 @@ export function Footer() {
             <WokuLogo className="w-10 mb-1" />
           </a>
         </p>
-        <p className="text-sm text-gray-400">{t.footer.license}</p>
+        <p className="text-sm text-gray-400">{t('license')}</p>
       </div>
     </footer>
   );

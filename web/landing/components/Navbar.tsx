@@ -3,13 +3,20 @@
 import { useState } from 'react'
 import { Trophy, Menu, X, Globe } from 'lucide-react'
 import { Button } from '@torvi/ui'
-import { useLanguage } from '@/contexts/LanguageContext'
+import { useTranslations, useLocale } from 'next-intl'
+import { useRouter, usePathname } from '@/i18n/navigation'
 
 export function Navbar() {
-  const { lang, setLang, t } = useLanguage()
+  const t = useTranslations('Nav')
+  const locale = useLocale()
+  const router = useRouter()
+  const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const toggleLang = () => setLang(lang === 'es' ? 'en' : 'es')
+  const toggleLang = () => {
+    const newLocale = locale === 'es' ? 'en' : 'es'
+    router.replace(pathname, { locale: newLocale })
+  }
 
   return (
     <nav className="sticky top-0 z-50 border-b border-white/10 bg-white/80 backdrop-blur-md">
@@ -26,10 +33,10 @@ export function Navbar() {
             className="flex items-center gap-1 rounded-md px-2 py-1 text-sm text-gray-600 transition-colors hover:bg-gray-100"
           >
             <Globe className="h-4 w-4" />
-            {lang === 'es' ? 'ES' : 'EN'}
+            {locale === 'es' ? 'ES' : 'EN'}
           </button>
 
-          <Button variant="primary">{t.nav.cta}</Button>
+          <Button variant="primary">{t('cta')}</Button>
         </div>
 
         {/* Mobile menu button */}
@@ -55,9 +62,9 @@ export function Navbar() {
               className="flex items-center gap-1 text-sm text-gray-600"
             >
               <Globe className="h-4 w-4" />
-              {lang === 'es' ? 'ES' : 'EN'}
+              {locale === 'es' ? 'ES' : 'EN'}
             </button>
-            <Button variant="primary">{t.nav.cta}</Button>
+            <Button variant="primary">{t('cta')}</Button>
           </div>
         </div>
       )}
