@@ -58,7 +58,8 @@ impl UserService for UserServiceImpl {
         let hashed_password = hash(password.as_bytes(), DEFAULT_COST)
             .map_err(|e| format!("Failed to hash password: {}", e))?;
 
-        let user = User::new(email.trim().to_string(), name, hashed_password);
+        let mut user = User::new(email.trim().to_string(), name, hashed_password);
+        user.id = Some(ObjectId::new());
 
         self.user_repository.create(&user).await?;
 

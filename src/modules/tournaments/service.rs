@@ -181,13 +181,14 @@ impl TournamentService for TournamentServiceImpl {
         }
 
         let initial_round = self.create_initial_round(&tournament_dto.opponents);
-        let tournament = Tournament::new(
+        let mut tournament = Tournament::new(
             tournament_dto.name,
             created_by,
             tournament_dto.opponents,
             tournament_dto.users,
             initial_round,
         );
+        tournament.id = Some(ObjectId::new());
 
         match self.tournament_repository.create(tournament.clone()).await {
             Ok(_) => Ok(tournament),

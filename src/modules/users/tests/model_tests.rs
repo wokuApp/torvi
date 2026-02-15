@@ -115,7 +115,7 @@ fn test_user_serialization() {
     // Assert
     assert!(serialized.contains("test@example.com"));
     assert!(serialized.contains("Test User"));
-    assert!(!serialized.contains("password123")); // password is skip_serializing
+    assert!(serialized.contains("password123")); // password included for MongoDB storage
 }
 
 #[test]

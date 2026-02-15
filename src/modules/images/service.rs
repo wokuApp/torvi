@@ -159,13 +159,14 @@ impl ImageService for ImageServiceImpl {
 
         let url = self.upload_to_s3(optimized_image.clone(), &key).await?;
 
-        let image = Image::new(
+        let mut image = Image::new(
             url,
             "image/webp".to_string(),
             optimized_image.len() as i64,
             key,
             created_by,
         );
+        image.id = Some(ObjectId::new());
 
         self.image_repository.save(&image).await?;
 
