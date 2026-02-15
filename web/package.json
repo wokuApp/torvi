@@ -3,7 +3,8 @@
   "private": true,
   "workspaces": [
     "packages/*",
-    "landing"
+    "landing",
+    "app"
   ],
   "scripts": {
     "test": "npm run test --workspaces --if-present",

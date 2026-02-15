@@ -1,0 +1,13 @@
+import { render, screen } from '@testing-library/react'
+import { describe, it, expect } from 'vitest'
+import { App } from './App'
+
+describe('App', () => {
+  it('renders without crashing', async () => {
+    render(<App />)
+    // RouterProvider renders asynchronously
+    expect(
+      await screen.findByText('Torvi', {}, { timeout: 3000 })
+    ).toBeInTheDocument()
+  })
+})
