@@ -21,29 +21,34 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
 
-      setAuth: (response: LoginResponse): void =>
+      setAuth: (response: LoginResponse) => {
         set({
           accessToken: response.access_token,
           refreshToken: response.refresh_token,
           user: response.user,
           isAuthenticated: true,
-        }),
+        })
+      },
 
-      setTokens: (response: RefreshResponse): void =>
+      setTokens: (response: RefreshResponse) => {
         set({
           accessToken: response.access_token,
           refreshToken: response.refresh_token,
-        }),
+        })
+      },
 
-      setUser: (user: AuthUser): void => set({ user }),
+      setUser: (user: AuthUser) => {
+        set({ user })
+      },
 
-      logout: (): void =>
+      logout: () => {
         set({
           accessToken: null,
           refreshToken: null,
           user: null,
           isAuthenticated: false,
-        }),
+        })
+      },
     }),
     {
       name: 'torvi-auth',

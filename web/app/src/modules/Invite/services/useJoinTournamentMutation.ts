@@ -25,7 +25,11 @@ export const useJoinTournamentMutation = () => {
   return useMutation({
     mutationFn: joinTournament,
     onSuccess: (data) => {
-      setTokens(data.access_token, '')
+      setTokens({
+        access_token: data.access_token,
+        refresh_token: '',
+        token_type: data.token_type ?? 'Bearer',
+      })
     },
   })
 }
