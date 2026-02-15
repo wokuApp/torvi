@@ -1,11 +1,10 @@
 /target
 .env
+!web/app/.env
 
 # Frontend
 web/**/node_modules
 web/landing/out
 web/landing/.next
 web/app/dist
-
-# prompts
-dev
+web/app/tsconfig.tsbuildinfo

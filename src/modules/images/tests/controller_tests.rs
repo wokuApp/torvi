@@ -22,6 +22,7 @@ async fn setup_rocket() -> Rocket<Build> {
         access_key_id: "test_key_id".to_string(),
         secret_access_key: "test_secret_key".to_string(),
         bucket: "test_bucket".to_string(),
+        endpoint_url: None,
     };
 
     rocket::build()

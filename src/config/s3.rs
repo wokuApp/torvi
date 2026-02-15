@@ -6,6 +6,7 @@ pub struct S3Config {
     pub access_key_id: String,
     pub secret_access_key: String,
     pub bucket: String,
+    pub endpoint_url: Option<String>,
 }
 
 impl S3Config {
@@ -19,6 +20,7 @@ impl S3Config {
                 .map_err(|_| "Missing AWS_SECRET_ACCESS_KEY environment variable")?,
             bucket: std::env::var("AWS_S3_BUCKET")
                 .map_err(|_| "Missing AWS_S3_BUCKET environment variable")?,
+            endpoint_url: std::env::var("AWS_ENDPOINT_URL").ok(),
         })
     }
 }

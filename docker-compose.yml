@@ -1,0 +1,41 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: torvi-mongodb
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_DATABASE=torvi
+
+  minio:
+    image: minio/minio:latest
+    container_name: torvi-minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+
+  minio-setup:
+    image: minio/mc:latest
+    container_name: torvi-minio-setup
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      sleep 3;
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin;
+      /usr/bin/mc mb myminio/torvi-images --ignore-existing;
+      /usr/bin/mc anonymous set download myminio/torvi-images;
+      exit 0;
+      "
+
+volumes:
+  mongodb_data:
+  minio_data:

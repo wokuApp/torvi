@@ -18,6 +18,7 @@ pub struct ImageServiceConfig {
     pub access_key_id: String,
     pub secret_access_key: String,
     pub bucket: String,
+    pub endpoint_url: Option<String>,
 }
 
 #[async_trait]
@@ -91,13 +92,16 @@ impl ImageServiceImpl {
             "torvi",
         );
 
-        let s3_config = aws_sdk_s3::Config::builder()
+        let mut builder = aws_sdk_s3::Config::builder()
             .behavior_version(BehaviorVersion::latest())
             .region(Region::new(self.config.region.clone()))
-            .credentials_provider(credentials)
-            .build();
+            .credentials_provider(credentials);
 
-        Client::from_conf(s3_config)
+        if let Some(ref endpoint) = self.config.endpoint_url {
+            builder = builder.endpoint_url(endpoint).force_path_style(true);
+        }
+
+        Client::from_conf(builder.build())
     }
 
     async fn upload_to_s3(&self, image_data: Vec<u8>, key: &str) -> Result<String, String> {
@@ -113,10 +117,16 @@ impl ImageServiceImpl {
             .await
             .map_err(|e| format!("Failed to upload to S3: {}", e))?;
 
-        Ok(format!(
-            "https://{}.s3.{}.amazonaws.com/{}",
-            self.config.bucket, self.config.region, key
-        ))
+        let url = if let Some(ref endpoint) = self.config.endpoint_url {
+            format!("{}/{}/{}", endpoint, self.config.bucket, key)
+        } else {
+            format!(
+                "https://{}.s3.{}.amazonaws.com/{}",
+                self.config.bucket, self.config.region, key
+            )
+        };
+
+        Ok(url)
     }
 
     async fn delete_from_s3(&self, key: &str) -> Result<(), String> {

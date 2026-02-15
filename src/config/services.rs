@@ -57,6 +57,7 @@ pub fn init() -> AdHoc {
                 access_key_id: s3_config.access_key_id.clone(),
                 secret_access_key: s3_config.secret_access_key.clone(),
                 bucket: s3_config.bucket.clone(),
+                endpoint_url: s3_config.endpoint_url.clone(),
             },
         ));
 
