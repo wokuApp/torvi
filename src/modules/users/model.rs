@@ -1,3 +1,4 @@
+use crate::common::json::{serialize_datetime, serialize_oid};
 use mongodb::bson::{doc, oid::ObjectId, DateTime};
 use serde::{Deserialize, Serialize};
 
@@ -42,17 +43,22 @@ pub struct UpdateUserDto {
 
 #[derive(Debug, Serialize)]
 pub struct UserResponse {
+    #[serde(serialize_with = "serialize_oid")]
     pub id: ObjectId,
     pub email: String,
     pub name: String,
+    #[serde(serialize_with = "serialize_datetime")]
     pub created_at: DateTime,
+    #[serde(serialize_with = "serialize_datetime")]
     pub updated_at: DateTime,
 }
 
 #[derive(Debug, Serialize)]
 pub struct PublicUserResponse {
+    #[serde(serialize_with = "serialize_oid")]
     pub id: ObjectId,
     pub name: String,
+    #[serde(serialize_with = "serialize_datetime")]
     pub created_at: DateTime,
 }
 

@@ -8,7 +8,7 @@ use crate::common::guards::AuthenticatedUser;
 use crate::common::pagination::{PaginatedResponse, PaginationParams};
 use crate::error::Error;
 use crate::modules::opponents::{
-    model::{CreateOpponentDto, Opponent, UpdateOpponentDto},
+    model::{CreateOpponentDto, OpponentResponse, UpdateOpponentDto},
     service::OpponentService,
 };
 
@@ -17,12 +17,12 @@ pub async fn create(
     service: &State<Arc<dyn OpponentService + Send + Sync>>,
     auth: AuthenticatedUser,
     opponent_dto: Json<CreateOpponentDto>,
-) -> Result<Json<Opponent>, Error> {
+) -> Result<Json<OpponentResponse>, Error> {
     let opponent = service
         .create_opponent(opponent_dto.into_inner(), auth.user_id)
         .await?;
 
-    Ok(Json(opponent))
+    Ok(Json(OpponentResponse::from(opponent)))
 }
 
 #[get("/?<params..>")]
@@ -30,9 +30,14 @@ pub async fn list(
     auth: AuthenticatedUser,
     service: &State<Arc<dyn OpponentService + Send + Sync>>,
     params: PaginationParams,
-) -> Result<Json<PaginatedResponse<Opponent>>, Error> {
+) -> Result<Json<PaginatedResponse<OpponentResponse>>, Error> {
     let response = service.find_by_creator(&auth.user_id, params).await?;
-    Ok(Json(response))
+    let mapped = PaginatedResponse {
+        data: response.data.into_iter().map(OpponentResponse::from).collect(),
+        next_cursor: response.next_cursor,
+        has_more: response.has_more,
+    };
+    Ok(Json(mapped))
 }
 
 #[get("/<id>")]
@@ -40,7 +45,7 @@ pub async fn get_opponent(
     auth: AuthenticatedUser,
     service: &State<Arc<dyn OpponentService + Send + Sync>>,
     id: &str,
-) -> Result<Json<Opponent>, Error> {
+) -> Result<Json<OpponentResponse>, Error> {
     let _ = auth;
     let opponent_id = ObjectId::parse_str(id)
         .map_err(|_| Error::BadRequest("Invalid opponent ID".to_string()))?;
@@ -50,7 +55,7 @@ pub async fn get_opponent(
         .await?
         .ok_or(Error::NotFound("Opponent not found".to_string()))?;
 
-    Ok(Json(opponent))
+    Ok(Json(OpponentResponse::from(opponent)))
 }
 
 #[put("/<id>", data = "<update_dto>")]
@@ -59,7 +64,7 @@ pub async fn update(
     service: &State<Arc<dyn OpponentService + Send + Sync>>,
     id: &str,
     update_dto: Json<UpdateOpponentDto>,
-) -> Result<Json<Opponent>, Error> {
+) -> Result<Json<OpponentResponse>, Error> {
     let opponent_id = ObjectId::parse_str(id)
         .map_err(|_| Error::BadRequest("Invalid opponent ID".to_string()))?;
 
@@ -67,7 +72,7 @@ pub async fn update(
         .update_opponent(&opponent_id, update_dto.into_inner(), &auth.user_id)
         .await?;
 
-    Ok(Json(opponent))
+    Ok(Json(OpponentResponse::from(opponent)))
 }
 
 #[delete("/<id>")]

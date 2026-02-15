@@ -1,3 +1,4 @@
+use crate::common::json::{serialize_datetime, serialize_oid};
 use mongodb::bson::{doc, oid::ObjectId, DateTime};
 use serde::{Deserialize, Serialize};
 
@@ -48,13 +49,17 @@ pub struct CreateImageDto {
 
 #[derive(Debug, Serialize)]
 pub struct ImageResponse {
+    #[serde(serialize_with = "serialize_oid")]
     pub id: ObjectId,
     pub url: String,
     pub image_type: String,
     pub size: i64,
     pub filename: String,
+    #[serde(serialize_with = "serialize_oid")]
     pub created_by: ObjectId,
+    #[serde(serialize_with = "serialize_datetime")]
     pub created_at: DateTime,
+    #[serde(serialize_with = "serialize_datetime")]
     pub updated_at: DateTime,
 }
 

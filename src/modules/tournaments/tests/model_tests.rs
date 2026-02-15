@@ -151,9 +151,12 @@ fn test_tournament_response_from_tournament() {
     // Assert
     assert_eq!(response.id, tournament_id);
     assert_eq!(response.name, tournament.name);
-    assert_eq!(response.opponents, tournament.opponents);
-    assert_eq!(response.users, tournament.users);
-    assert_eq!(response.rounds, tournament.rounds);
+    assert_eq!(response.opponents.len(), tournament.opponents.len());
+    assert_eq!(response.opponents[0].opponent_id, tournament.opponents[0].opponent_id);
+    assert_eq!(response.users.len(), tournament.users.len());
+    assert_eq!(response.users[0].name, tournament.users[0].name);
+    assert_eq!(response.rounds.len(), tournament.rounds.len());
+    assert_eq!(response.rounds[0].round_number, tournament.rounds[0].round_number);
     assert_eq!(response.status, tournament.status);
     assert_eq!(response.winner, tournament.winner);
     assert_eq!(response.created_at, tournament.created_at);

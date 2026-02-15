@@ -1,3 +1,4 @@
+use crate::common::json::serialize_oid;
 use crate::modules::users::model::User;
 use mongodb::bson::oid::ObjectId;
 use serde::{Deserialize, Serialize};
@@ -25,6 +26,7 @@ pub struct RegisterDto {
 
 #[derive(Debug, Serialize)]
 pub struct AuthUserResponse {
+    #[serde(serialize_with = "serialize_oid")]
     pub id: ObjectId,
     pub email: String,
     pub name: String,

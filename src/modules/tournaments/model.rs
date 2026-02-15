@@ -1,3 +1,6 @@
+use crate::common::json::{
+    serialize_datetime, serialize_oid, serialize_option_oid, serialize_vec_oid,
+};
 use mongodb::bson::{doc, oid::ObjectId, DateTime};
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -131,17 +134,59 @@ pub struct UserDto {
     pub name: String,
 }
 
+// --- Response types with plain string serialization ---
+
+#[derive(Debug, Serialize, PartialEq)]
+pub struct TournamentOpponentResponse {
+    #[serde(serialize_with = "serialize_oid")]
+    pub opponent_id: ObjectId,
+    pub url: String,
+}
+
+#[derive(Debug, Serialize, PartialEq)]
+pub struct TournamentUserResponse {
+    pub voter_id: String,
+    pub name: String,
+}
+
+#[derive(Debug, Serialize, PartialEq)]
+pub struct MatchResponse {
+    pub match_id: String,
+    #[serde(serialize_with = "serialize_oid")]
+    pub opponent1: ObjectId,
+    #[serde(serialize_with = "serialize_oid")]
+    pub opponent2: ObjectId,
+    pub votes: HashMap<String, Vec<String>>,
+    #[serde(serialize_with = "serialize_option_oid")]
+    pub winner: Option<ObjectId>,
+    #[serde(serialize_with = "serialize_datetime")]
+    pub match_date: DateTime,
+}
+
+#[derive(Debug, Serialize, PartialEq)]
+pub struct RoundResponse {
+    pub round_number: i32,
+    pub matches: Vec<MatchResponse>,
+    #[serde(serialize_with = "serialize_vec_oid")]
+    pub automatic_winners: Vec<ObjectId>,
+}
+
 #[derive(Debug, Serialize)]
 pub struct TournamentResponse {
+    #[serde(serialize_with = "serialize_oid")]
     pub id: ObjectId,
     pub name: String,
+    #[serde(serialize_with = "serialize_oid")]
     pub created_by: ObjectId,
-    pub opponents: Vec<TournamentOpponent>,
-    pub users: Vec<TournamentUser>,
-    pub rounds: Vec<Round>,
+    pub opponents: Vec<TournamentOpponentResponse>,
+    pub users: Vec<TournamentUserResponse>,
+    pub rounds: Vec<RoundResponse>,
     pub status: TournamentStatus,
+    #[serde(serialize_with = "serialize_option_oid")]
     pub winner: Option<ObjectId>,
+    #[serde(serialize_with = "serialize_datetime")]
     pub created_at: DateTime,
+    #[serde(serialize_with = "serialize_datetime")]
     pub updated_at: DateTime,
 }
 
@@ -151,9 +196,48 @@ impl From<Tournament> for TournamentResponse {
             id: tournament.id.unwrap(),
             name: tournament.name,
             created_by: tournament.created_by,
-            opponents: tournament.opponents,
-            users: tournament.users,
-            rounds: tournament.rounds,
+            opponents: tournament
+                .opponents
+                .into_iter()
+                .map(|o| TournamentOpponentResponse {
+                    opponent_id: o.opponent_id,
+                    url: o.url,
+                })
+                .collect(),
+            users: tournament
+                .users
+                .into_iter()
+                .map(|u| TournamentUserResponse {
+                    voter_id: u.voter_id.as_string(),
+                    name: u.name,
+                })
+                .collect(),
+            rounds: tournament
+                .rounds
+                .into_iter()
+                .map(|r| RoundResponse {
+                    round_number: r.round_number,
+                    matches: r
+                        .matches
+                        .into_iter()
+                        .map(|m| MatchResponse {
+                            match_id: m.match_id,
+                            opponent1: m.opponent1,
+                            opponent2: m.opponent2,
+                            votes: m
+                                .votes
+                                .into_iter()
+                                .map(|(k, v)| {
+                                    (k, v.into_iter().map(|vid| vid.as_string()).collect())
+                                })
+                                .collect(),
+                            winner: m.winner,
+                            match_date: m.match_date,
+                        })
+                        .collect(),
+                    automatic_winners: r.automatic_winners,
+                })
+                .collect(),
             status: tournament.status,
             winner: tournament.winner,
             created_at: tournament.created_at,
@@ -196,8 +280,10 @@ pub struct CreateInviteDto {
 #[derive(Debug, Serialize)]
 pub struct InviteResponse {
     pub code: String,
+    #[serde(serialize_with = "serialize_oid")]
     pub tournament_id: ObjectId,
     pub max_uses: u32,
+    #[serde(serialize_with = "serialize_datetime")]
     pub expires_at: DateTime,
 }
 
@@ -213,6 +299,7 @@ pub struct JoinTournamentResponse {
     pub token_type: String,
     pub session_id: String,
     pub display_name: String,
+    #[serde(serialize_with = "serialize_oid")]
     pub tournament_id: ObjectId,
 }
 
